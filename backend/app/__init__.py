@@ -1,0 +1,1 @@
+"""SmartDiner Backend Application"""
