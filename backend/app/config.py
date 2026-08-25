@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     
     # Database
     database_url: str = Field(
-        default="postgresql+asyncpg://restaurant_user:restaurant_pass@localhost:5432/restaurant_db",
+        default="postgresql+asyncpg://restaurant_user:restaurant_pass@127.0.0.1:5433/restaurant_db",
         description="PostgreSQL async connection string"
     )
     

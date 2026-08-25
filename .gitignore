@@ -50,6 +50,14 @@ coverage/
 *.tsbuildinfo
 *.pem
 
+# Python
+.venv/
+backend/venv/   
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+
 # Markdown files (except README)
 *.md
 !README.md

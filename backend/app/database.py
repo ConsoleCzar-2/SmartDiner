@@ -26,11 +26,11 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncSession: # type: ignore
     """Dependency for getting database session"""
     async with AsyncSessionLocal() as session:
         try:
-            yield session
+            yield session # type: ignore
         finally:
             await session.close()
 
