@@ -104,7 +104,7 @@ export default function RestaurantMenuPage({
                             {category}
                         </h2>
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {items.map((item) => (
+                            {(items as any[]).map((item: any) => (
                                 <div
                                     key={item.id}
                                     className="flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] transition-colors hover:bg-white/[0.04]"

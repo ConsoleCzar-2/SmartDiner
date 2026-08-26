@@ -28,7 +28,7 @@ tenacity==8.2.3
 uuid6==2025.0.1
 
 # Security
-python-jose[cryptography]==3.3.0
+PyJWT==2.8.0
 passlib[bcrypt]==1.7.4
 
 # Redis
