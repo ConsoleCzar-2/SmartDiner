@@ -1,8 +1,9 @@
 """Application configuration using Pydantic Settings"""
+import json
 from functools import lru_cache
-from typing import List
+from typing import Any, List
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -35,6 +36,10 @@ class Settings(BaseSettings):
         default=["http://localhost:3000", "http://localhost:5173"],
         description="Allowed CORS origins"
     )
+    cors_origin_regex: str = Field(
+        default=r"^https://.*\.vercel\.app$",
+        description="Optional regex for allowed origins (useful for preview deployments)"
+    )
     
     # Redis
     redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
@@ -44,6 +49,41 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False
     )
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: Any) -> List[str]:
+        """Allow JSON array or comma-separated origins from environment variables."""
+        if value is None:
+            return []
+
+        if isinstance(value, list):
+            return [origin.rstrip("/") for origin in value if isinstance(origin, str)]
+
+        if isinstance(value, str):
+            raw = value.strip()
+            if not raw:
+                return []
+
+            if raw.startswith("["):
+                try:
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, list):
+                        return [
+                            origin.rstrip("/")
+                            for origin in parsed
+                            if isinstance(origin, str)
+                        ]
+                except json.JSONDecodeError:
+                    pass
+
+            return [
+                origin.strip().rstrip("/")
+                for origin in raw.split(",")
+                if origin.strip()
+            ]
+
+        return []
 
 
 @lru_cache()
