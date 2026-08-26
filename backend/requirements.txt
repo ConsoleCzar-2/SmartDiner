@@ -30,6 +30,7 @@ uuid6==2025.0.1
 # Security
 PyJWT==2.8.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 
 # Redis
 redis==5.0.1
