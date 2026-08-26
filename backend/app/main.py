@@ -55,8 +55,6 @@ async def health_check():
     }
 
 
-# Import and include routers here when created
-# from app.routers import menu, orders, recommendations
-# app.include_router(menu.router, prefix="/api/v1/menu", tags=["menu"])
-# app.include_router(orders.router, prefix="/api/v1/orders", tags=["orders"])
-# app.include_router(recommendations.router, prefix="/api/v1/recommendations", tags=["recommendations"])
+# Import and include routers
+from app.routers import chat
+app.include_router(chat.router)
