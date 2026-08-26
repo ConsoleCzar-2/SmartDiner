@@ -14,7 +14,7 @@ from app.services.explanation_generator import generate_explanation
 from app.models.restaurant import Restaurant
 from app.models.conversation import Conversation
 from sqlalchemy import select
-async def process_chat_request(request: ChatRequest, db: AsyncSession) -> ChatResponse:
+async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: str) -> ChatResponse:
     """
     Full recommendation pipeline:
       1. Extract constraints from user message (LLM)
@@ -36,6 +36,7 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession) -> ChatRe
     if not conversation:
         conversation = Conversation(
             restaurant_id=str(request.restaurant_id),
+            user_id=user_id,
             messages=[],
             current_constraints={},
             current_cart=[]

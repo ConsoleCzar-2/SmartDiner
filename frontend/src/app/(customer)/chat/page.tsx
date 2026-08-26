@@ -37,6 +37,12 @@ function ChatContent() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        const token = localStorage.getItem("userToken");
+        if (!token) {
+            router.push("/login");
+            return;
+        }
+
         if (!restaurantId) {
             router.push("/");
             return;
@@ -47,6 +53,17 @@ function ChatContent() {
                 const found = data.find((r) => r.id === restaurantId);
                 if (found) {
                     setRestaurant({ id: found.id, name: found.name });
+                    // Fetch active chat
+                    import("@/lib/api").then(({ fetchActiveChat }) => {
+                        fetchActiveChat(found.id).then((chatData) => {
+                            if (chatData && chatData.conversation_id) {
+                                setConversationId(chatData.conversation_id);
+                                if (chatData.history && chatData.history.length > 0) {
+                                    setMessages(chatData.history);
+                                }
+                            }
+                        }).catch(console.error);
+                    });
                 } else {
                     router.push("/");
                 }

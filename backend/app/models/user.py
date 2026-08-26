@@ -10,6 +10,8 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid7()))
     name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=True) # Optional for older anonymous users
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=True)
     default_preferences: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=func.now())
 

@@ -1,25 +1,29 @@
 import { Activity, BadgeIndianRupee, ShieldCheck } from "lucide-react";
-const metrics = [
-    {
-        label: "Solved orders",
-        value: "1,284",
-        detail: "+18.6% this month",
-        icon: Activity,
-    },
-    {
-        label: "Budget accuracy",
-        value: "99.8%",
-        detail: "Within declared cap",
-        icon: BadgeIndianRupee,
-    },
-    {
-        label: "Hallucination rate",
-        value: "0.0%",
-        detail: "Grounded outputs only",
-        icon: ShieldCheck,
-    },
-];
-export function AdminMetrics() {
+
+export function AdminMetrics({ data }: { data?: any }) {
+    if (!data) return null;
+
+    const metrics = [
+        {
+            label: "Total Orders",
+            value: data.total_orders.toString(),
+            detail: "Completed transactions",
+            icon: Activity,
+        },
+        {
+            label: "Total Revenue",
+            value: `₹${data.total_revenue.toFixed(2)}`,
+            detail: "Gross volume",
+            icon: BadgeIndianRupee,
+        },
+        {
+            label: "Total Conversations",
+            value: data.total_conversations.toString(),
+            detail: "Governed pipeline runs",
+            icon: ShieldCheck,
+        },
+    ];
+
     return (
         <div className="grid gap-4 md:grid-cols-3">
             {metrics.map(({ label, value, detail, icon: Icon }) => (

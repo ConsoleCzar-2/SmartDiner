@@ -2,6 +2,17 @@
 
 AI-powered restaurant assistant that guarantees allergen safety, budget compliance, and dietary adherence through a governed architecture.
 
+## Current Project Status
+
+**Milestone Reached:** Core Engineering & Full-Stack Integration (Step 9 of 14 Completed)
+- **Backend Pipeline:** End-to-end integration of LLM Constraint Extraction → SQL DB Filtering → ILP PuLP Solver → LLM Explanation Generation is operational.
+- **Frontend:** Next.js App Router frontend integrated with real-time API routes.
+- **Unified Authentication:** JWT-based robust authentication combining both Customer workflows and Staff/Admin RBAC.
+- **Admin Panel:** Secure portal for staff featuring privacy-preserving Conversation Audit Logs and dynamic Metrics Dashboards.
+- **Up Next:** Automated Testing Suite (Pytest), Prompt Evaluations, and comprehensive Documentation (Steps 10-12).
+
+---
+
 ## Database Architecture
 
 The SmartDiner backend relies on a PostgreSQL database managed by SQLAlchemy 2.0 (asyncio) and Alembic for migrations. 

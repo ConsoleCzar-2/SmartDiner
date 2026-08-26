@@ -1,6 +1,7 @@
 """SmartDiner FastAPI Application Entry Point"""
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
@@ -23,6 +24,7 @@ app = FastAPI(
     version="0.1.0",
     debug=settings.debug,
     lifespan=lifespan,
+    swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"}
 )
 
 # CORS middleware
@@ -33,6 +35,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Remove the custom_swagger_ui_html route entirely
 
 
 @app.get("/")
@@ -56,6 +61,8 @@ async def health_check():
 
 
 # Import and include routers
-from app.routers import chat, menu
+from app.routers import chat, menu, admin, auth
 app.include_router(chat.router)
 app.include_router(menu.router)
+app.include_router(admin.router)
+app.include_router(auth.router)
