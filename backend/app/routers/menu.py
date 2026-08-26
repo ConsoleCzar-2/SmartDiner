@@ -15,10 +15,17 @@ router = APIRouter(prefix="/api", tags=["menu"])
 @router.get("/restaurants", response_model=List[RestaurantResponse])
 async def get_restaurants(db: AsyncSession = Depends(get_db)):
     """Fetch all active restaurants from the database."""
-    query = select(Restaurant).where(Restaurant.is_active == True)
-    result = await db.execute(query)
-    restaurants = result.scalars().all()
-    return restaurants
+    active_query = select(Restaurant).where(Restaurant.is_active == True)
+    active_result = await db.execute(active_query)
+    restaurants = active_result.scalars().all()
+
+    # Fallback for legacy data where is_active may be missing/false for all rows.
+    if restaurants:
+        return restaurants
+
+    all_query = select(Restaurant)
+    all_result = await db.execute(all_query)
+    return all_result.scalars().all()
 
 
 @router.get("/restaurants/{restaurant_id}", response_model=RestaurantResponse)

@@ -11,6 +11,8 @@ import type { RestaurantResponse } from "@/types";
 export function RestaurantSelector() {
     const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
     const [selected, setSelected] = useState<RestaurantResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -21,7 +23,14 @@ export function RestaurantSelector() {
                     setSelected(data[0]);
                 }
             })
-            .catch(console.error);
+            .catch((err: unknown) => {
+                const message =
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to load restaurants.";
+                setError(message);
+            })
+            .finally(() => setLoading(false));
     }, []);
 
     const continueToChat = () => {
@@ -72,6 +81,25 @@ export function RestaurantSelector() {
                         <Sparkles className="h-5 w-5 text-[#f6a61d]" />
                     </div>
                     <div className="space-y-2">
+                        {loading && (
+                            <div className="rounded-2xl border border-white/10 bg-white/[.03] p-4 text-sm text-zinc-400">
+                                Loading restaurants...
+                            </div>
+                        )}
+
+                        {!loading && error && (
+                            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+                                {error}
+                            </div>
+                        )}
+
+                        {!loading && !error && restaurants.length === 0 && (
+                            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+                                No restaurants found. Seed data may be missing in the
+                                connected database.
+                            </div>
+                        )}
+
                         {restaurants.map((restaurant, index) => {
                             const active =
                                 selected && restaurant.id === selected.id;
