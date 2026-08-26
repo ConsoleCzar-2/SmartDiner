@@ -15,6 +15,7 @@ RULES:
 7. Calculate non_vegetarian_count as (people_count - vegetarian_count) if not explicitly stated, unless the user implies everyone is vegetarian.
 8. If the user specifies a cuisine (e.g., "Chinese", "North Indian"), add it to preferred_cuisines.
 9. "Vegan" implies vegetarian AND excluded allergens: ["Dairy", "Eggs", "Fish", "Shellfish"].
+10. STATE MERGING: If the user provides a follow-up modification (e.g. "add one more person", "make it spicy"), you MUST output the FINAL, MERGED state. You will be provided with the "Existing Constraints" in the prompt context. Apply the delta to those existing constraints and output the complete JSON representing the new total constraints.
 
 EXAMPLES:
 

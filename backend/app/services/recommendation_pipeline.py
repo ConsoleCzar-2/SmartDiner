@@ -12,8 +12,8 @@ from app.services.menu_filter import filter_menu_items
 from app.services.optimizer import optimize_menu
 from app.services.explanation_generator import generate_explanation
 from app.models.restaurant import Restaurant
-
-
+from app.models.conversation import Conversation
+from sqlalchemy import select
 async def process_chat_request(request: ChatRequest, db: AsyncSession) -> ChatResponse:
     """
     Full recommendation pipeline:
@@ -22,8 +22,34 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession) -> ChatRe
       3. Optimize meal combination (ILP Solver)
       4. Generate grounded explanation (LLM)
     """
+    # --- Step 0: Conversation State Management ---
+    conversation = None
+    conversation_history = []
+    existing_constraints = {}
+    
+    if request.conversation_id:
+        conversation = await db.get(Conversation, str(request.conversation_id))
+        if conversation:
+            conversation_history = conversation.messages
+            existing_constraints = conversation.current_constraints
+            
+    if not conversation:
+        conversation = Conversation(
+            restaurant_id=str(request.restaurant_id),
+            messages=[],
+            current_constraints={},
+            current_cart=[]
+        )
+        db.add(conversation)
+        await db.commit()
+        await db.refresh(conversation)
+
     # --- Step 1: LLM Constraint Extraction ---
-    constraints = await extract_constraints(request.message)
+    constraints = await extract_constraints(
+        request.message, 
+        conversation_history=conversation_history, 
+        existing_constraints=existing_constraints
+    )
 
     # --- Step 2: SQL Deterministic Filter ---
     filtered = await filter_menu_items(db, request.restaurant_id, constraints)
@@ -77,8 +103,21 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession) -> ChatRe
     # --- Step 5: Grounded LLM Explanation ---
     explanation = await generate_explanation(solver_output, constraints)
 
+    # --- Step 6: Save State ---
+    # Append to conversation history
+    # The JSONB field needs to be updated by reassignment or via mutable dict
+    new_messages = list(conversation.messages)
+    new_messages.append({"role": "user", "content": request.message})
+    new_messages.append({"role": "assistant", "content": explanation})
+    
+    conversation.messages = new_messages
+    conversation.current_constraints = constraints.model_dump()
+    conversation.current_cart = [item.model_dump() for item in recommended_items]
+    
+    await db.commit()
+
     return ChatResponse(
-        conversation_id=None,  # Will be populated in Step 9 (multi-turn)
+        conversation_id=UUID(conversation.id),
         recommendation=recommendation,
         explanation=explanation,
         extracted_constraints=constraints,

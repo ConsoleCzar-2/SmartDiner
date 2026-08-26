@@ -4,7 +4,7 @@ from app.schemas.constraints import ExtractedConstraints
 from app.prompts.constraint_extraction import SYSTEM_PROMPT
 from app.config import settings
 
-async def extract_constraints(user_message: str, conversation_history: list = None) -> ExtractedConstraints:
+async def extract_constraints(user_message: str, conversation_history: list = None, existing_constraints: dict = None) -> ExtractedConstraints:
     """
     Extracts structured constraints from a natural language user message using Gemini.
     """
@@ -18,6 +18,11 @@ async def extract_constraints(user_message: str, conversation_history: list = No
             role = msg.get("role", "unknown")
             content = msg.get("content", "")
             context += f"{role.capitalize()}: {content}\n"
+            
+    if existing_constraints:
+        context += f"\nExisting Constraints (JSON):\n{json.dumps(existing_constraints, indent=2)}\n"
+        
+    if context:
         context += "\nCurrent Request:\n"
 
     final_prompt = f"{context}User: {user_message}"

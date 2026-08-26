@@ -289,7 +289,9 @@ SmartDiner operates on the principle that **LLMs should not make business-critic
 
 ### 1. LLM Constraint Extraction (Probabilistic)
 User messages (e.g., *"I need food for 5 people, 2 are veg, budget is 2000"*) are fed into **Gemini 2.5 Flash**. 
-Using Pydantic validation and strict structured JSON outputs, the LLM parses the natural language into a rigid `ExtractedConstraints` object. The LLM is explicitly barred from generating dish recommendations at this stage.
+Using Pydantic validation and strict structured JSON outputs, the LLM parses the natural language into a rigid `ExtractedConstraints` object. 
+
+**Multi-Turn State Merging:** The pipeline persists conversation state (history and current constraints) in PostgreSQL using a `conversation_id`. If a user follows up with *"Actually, add one more person"*, the LLM is fed the historical constraints and instructed to apply the delta, returning a seamlessly merged state. The LLM is explicitly barred from generating dish recommendations at this stage.
 
 ### 2. SQL Deterministic Filter (Safety Layer)
 The structured constraints are passed to the database layer via SQLAlchemy.
