@@ -1,6 +1,25 @@
 import type { ChatRequest, ChatResponse, RestaurantResponse } from "@/types";
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+
+function resolveApiBaseUrl(): string {
+    const configuredUrl =
+        process.env.NEXT_PUBLIC_API_URL ??
+        process.env.NEXT_PUBLIC_API_BASE_URL;
+
+    if (configuredUrl) {
+        return configuredUrl.replace(/\/$/, "");
+    }
+
+    // Local default for development only.
+    if (process.env.NODE_ENV !== "production") {
+        return "http://localhost:8000";
+    }
+
+    throw new Error(
+        "Missing NEXT_PUBLIC_API_URL (or NEXT_PUBLIC_API_BASE_URL) in production environment.",
+    );
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 export async function sendChatMessage(payload: ChatRequest): Promise<ChatResponse> {
     const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
     const response = await fetch(`${API_BASE_URL}/api/chat`, {

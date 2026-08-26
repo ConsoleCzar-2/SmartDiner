@@ -4,12 +4,13 @@ AI-powered restaurant assistant that guarantees allergen safety, budget complian
 
 ## Current Project Status
 
-**Milestone Reached:** Prompt Optimization & Documentation (Step 12 of 14 Completed)
+**Milestone Reached:** Production Deployment (Step 13 of 14 Completed)
 - **Backend Pipeline:** End-to-end integration of LLM Constraint Extraction → SQL DB Filtering → ILP PuLP Solver → LLM Explanation Generation is operational.
 - **Frontend:** Next.js App Router frontend integrated with real-time API routes, featuring a dedicated Visual Menu browser and a dynamic AI chat interface with detailed order tickets.
 - **LLM Optimization:** Upgraded schema rules (nullable fields) and migrated to **Gemini 3.5 Flash Lite** for lightning-fast, high-volume constraint extraction and explanations.
 - **Math Solver Polish:** Hardened the Integer Linear Programming (ILP) solver with `MaxServingsConstraint` (for infinite budgets) and `NonVegServingsConstraint` (to mathematically guarantee dietary diversity).
-- **Up Next:** Terraform IaC & GCP Deployment (Step 13).
+- **Deployed:** Backend on **Render** (Docker + managed PostgreSQL), Frontend on **Vercel** (edge network). Full GCP/Terraform IaC migration planned as future work.
+- **Up Next:** Demo Video & Final Submission (Step 14).
 
 ## Comprehensive Documentation
 
