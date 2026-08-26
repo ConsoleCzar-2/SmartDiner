@@ -280,3 +280,28 @@ Records completed transactions and provides an audit trail for the deterministic
   - `quantity` (Integer, NOT NULL) — `CHECK (quantity > 0)`
   - `unit_price` (Numeric(10,2), NOT NULL)
   - `subtotal` (Numeric(10,2), NOT NULL)
+
+---
+
+## The Governed AI Pipeline (Core Innovation)
+
+SmartDiner operates on the principle that **LLMs should not make business-critical math or safety decisions**. Instead, it uses a 3-step governed pipeline that strictly separates natural language understanding from deterministic business logic.
+
+### 1. LLM Constraint Extraction (Probabilistic)
+User messages (e.g., *"I need food for 5 people, 2 are veg, budget is ₹2000"*) are fed into **Gemini 2.5 Flash**. 
+Using Pydantic validation and strict structured JSON outputs, the LLM parses the natural language into a rigid `ExtractedConstraints` object. The LLM is explicitly barred from generating dish recommendations at this stage.
+
+### 2. SQL Deterministic Filter (Safety Layer)
+The structured constraints are passed to the database layer via SQLAlchemy.
+- **Allergen Safety:** A deep mathematical SQL subquery (`~MenuItem.id.in_()`) traces ingredients to completely prune unsafe dishes.
+- **Budget/Spice Pruning:** Items exceeding the budget or requested spice levels are immediately dropped.
+- **Result:** We are left with safe `veg_items` and `nonveg_items` candidate lists.
+
+### 3. ILP Optimization Solver (Mathematical Engine)
+The safe candidate lists and original constraints are fed into **PuLP**, an Integer Linear Programming (ILP) mathematical solver.
+- **Variables:** An integer variable is created for the quantity of every candidate dish.
+- **Dynamic Diversity:** The maximum quantity for any single dish is capped dynamically based on party size (`max(2, ceil(TotalPeople / 3))`) to mathematically force meal variety.
+- **Constraints:** The solver is given hard constraints for Budget, Total Servings, and Vegetarian Servings. 
+- **Objective:** It maximizes a combination of `Rating * Serving Size` to find the absolute mathematically optimal combination of dishes that satisfies all rules.
+
+This ensures 100% budget adherence and allergen safety, completely eliminating the risk of LLM hallucinations in the final order.
