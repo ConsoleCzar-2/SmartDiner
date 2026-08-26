@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+:root { --background: #0c1011; --foreground: #f7f4ed; --card: #111718; --card-foreground: #f7f4ed; --popover: #111718; --popover-foreground: #f7f4ed; --primary: #f6a61d; --primary-foreground: #24190b; --secondary: #222a2b; --secondary-foreground: #f7f4ed; --muted: #1b2223; --muted-foreground: #a1a9a9; --accent: #222a2b; --accent-foreground: #f7f4ed; --destructive: #e7695d; --border: rgba(255,255,255,.1); --input: rgba(255,255,255,.12); --ring: #f6a61d; --radius: .8rem; }
+* { border-color: var(--border); }
+html { background: #0c1011; }
+body { margin: 0; min-height: 100vh; background: #0c1011; color: #f7f4ed; font-family: Arial, Helvetica, sans-serif; }
+button, input, textarea { font: inherit; }
+button:not(:disabled), a[href] { cursor: pointer; }
+::selection { background: #f6a61d; color: #24190b; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

@@ -56,5 +56,6 @@ async def health_check():
 
 
 # Import and include routers
-from app.routers import chat
+from app.routers import chat, menu
 app.include_router(chat.router)
+app.include_router(menu.router)

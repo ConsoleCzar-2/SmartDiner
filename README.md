@@ -361,3 +361,31 @@ The backend exposes a single core recommendation endpoint. Full interactive docu
 }
 ```
 
+---
+
+## Running the Project Locally
+
+The project consists of a FastAPI backend and a Next.js frontend. You will need to run both concurrently in separate terminals.
+
+### 1. Start the Backend
+
+```bash
+cd backend
+# Activate your virtual environment (Windows)
+.\.venv\Scripts\activate
+# Start the FastAPI server
+uvicorn app.main:app --reload
+```
+*The backend API and Swagger Docs will be available at [http://localhost:8000/docs](http://localhost:8000/docs).*
+
+### 2. Start the Frontend
+
+```bash
+cd frontend
+# Install dependencies (only needed once)
+npm install
+# Start the Next.js development server
+npm run dev
+```
+*The Next.js UI will be available at [http://localhost:3000](http://localhost:3000).*
+
