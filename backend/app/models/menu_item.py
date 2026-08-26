@@ -46,6 +46,6 @@ class MenuItem(Base):
 
     # Relationships
     restaurant = relationship("Restaurant", back_populates="menu_items")
-    allergens = relationship("Allergen", secondary="menu_item_allergens", backref="menu_items")
+    ingredients = relationship("Ingredient", secondary="menu_item_ingredients", backref="menu_items")
     dietary_tags = relationship("DietaryTag", secondary="menu_item_tags", backref="menu_items")
     order_items = relationship("OrderItem", back_populates="menu_item")
