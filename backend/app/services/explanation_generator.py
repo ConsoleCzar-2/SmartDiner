@@ -51,7 +51,7 @@ async def generate_explanation(solver_output: dict, constraints: ExtractedConstr
     client = genai.Client(api_key=settings.gemini_api_key)
 
     response = await client.aio.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.5-flash-lite",
         contents=context_block,
         config={
             "system_instruction": EXPLANATION_SYSTEM_PROMPT,

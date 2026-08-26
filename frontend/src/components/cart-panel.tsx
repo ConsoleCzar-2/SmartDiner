@@ -5,6 +5,8 @@ import {
     Leaf,
     ReceiptText,
     Users,
+    Beef,
+    Flame,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { RecommendationResult } from "@/types";
@@ -14,6 +16,36 @@ const money = (value: number) =>
         currency: "INR",
         maximumFractionDigits: 0,
     }).format(value);
+
+const SpiceIndicator = ({ level }: { level: string }) => {
+    if (!level || level === "Any") return null;
+
+    if (level === "None") {
+        return (
+            <span className="inline-flex items-center gap-0.5 text-[#6d6257]" title="No spice">
+                <Flame className="h-3 w-3 opacity-40" />
+                <span>None spice</span>
+            </span>
+        );
+    }
+    
+    let count = 1;
+    let color = "text-yellow-600";
+    if (level === "Medium") { count = 2; color = "text-orange-500"; }
+    else if (level === "High") { count = 3; color = "text-red-500"; }
+    else if (level === "Extreme") { count = 4; color = "text-red-700"; }
+
+    return (
+        <span className="inline-flex items-center gap-0.5" title={`${level} spice`}>
+            <span className={`inline-flex ${color}`}>
+                {Array.from({ length: count }).map((_, i) => (
+                    <Flame key={i} className="h-3 w-3" />
+                ))}
+            </span>
+            <span className="ml-0.5 text-[#6d6257]">{level} spice</span>
+        </span>
+    );
+};
 export function CartPanel({
     recommendation,
 }: {
@@ -35,8 +67,8 @@ export function CartPanel({
         );
     const optimal = recommendation.status.toLowerCase() === "optimal";
     return (
-        <aside className="sticky top-24 overflow-hidden rounded-3xl border border-white/10 bg-[#f7f4ed] text-[#241f19] shadow-2xl">
-            <div className="border-b border-[#241f19]/10 bg-[#f6a61d] px-5 py-4">
+        <aside className="sticky top-24 flex max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#f7f4ed] text-[#241f19] shadow-2xl">
+            <div className="shrink-0 border-b border-[#241f19]/10 bg-[#f6a61d] px-5 py-4">
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#76500e]">
@@ -53,7 +85,7 @@ export function CartPanel({
                     )}
                 </div>
             </div>
-            <div className="p-5">
+            <div className="overflow-y-auto p-5">
                 {recommendation.reason && !optimal && (
                     <p className="mb-4 rounded-xl bg-red-500/10 p-3 text-xs text-red-700">
                         {recommendation.reason}
@@ -79,13 +111,20 @@ export function CartPanel({
                                         {money(item.subtotal)}
                                     </p>
                                 </div>
-                                <p className="mt-1 text-[10px] text-[#6d6257]">
-                                    {item.category} · {item.spice_level} spice ·{" "}
-                                    {item.total_servings} servings
-                                </p>
-                                {item.is_veg && (
+                                <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[#6d6257]">
+                                    <span>{item.category}</span>
+                                    <span>·</span>
+                                    <SpiceIndicator level={item.spice_level} />
+                                    <span>·</span>
+                                    <span>{item.total_servings} servings</span>
+                                </div>
+                                {item.is_veg ? (
                                     <span className="mt-1 flex w-fit items-center gap-1 text-[10px] font-semibold text-emerald-700">
                                         <Leaf className="h-3 w-3" /> Vegetarian
+                                    </span>
+                                ) : (
+                                    <span className="mt-1 flex w-fit items-center gap-1 text-[10px] font-semibold text-red-600">
+                                        <Beef className="h-3 w-3" /> Non-Vegetarian
                                     </span>
                                 )}
                             </div>

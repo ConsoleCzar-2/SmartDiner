@@ -50,7 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <aside className="w-64 border-r border-white/10 bg-[#0c1011] flex flex-col">
                         <div className="p-6 border-b border-white/10">
                             <span className="block text-sm font-black tracking-[-.06em] text-white">
-                                smart<span className="text-[#f6a61d]">diner</span> admin
+                                Smart<span className="text-[#f6a61d]">Diner</span> admin
                             </span>
                         </div>
                         <nav className="flex-1 space-y-2 p-4">

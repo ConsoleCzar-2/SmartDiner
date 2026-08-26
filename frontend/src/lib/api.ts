@@ -36,9 +36,25 @@ export async function fetchActiveChat(restaurantId: string): Promise<any> {
 export async function fetchRestaurants(): Promise<RestaurantResponse[]> {
     const response = await fetch(`${API_BASE_URL}/api/restaurants`);
     if (!response.ok) {
-        throw new Error("Failed to fetch restaurants.");
+        throw new Error(`Failed to fetch restaurants (${response.status})`);
     }
-    return response.json();
+    return response.json() as Promise<RestaurantResponse[]>;
+}
+
+export async function fetchRestaurant(id: string): Promise<RestaurantResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/restaurants/${id}`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch restaurant (${response.status})`);
+    }
+    return response.json() as Promise<RestaurantResponse>;
+}
+
+export async function fetchRestaurantMenu(id: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/api/restaurants/${id}/menu`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch restaurant menu (${response.status})`);
+    }
+    return response.json() as Promise<any[]>;
 }
 
 export async function customerLogin(credentials: any): Promise<any> {

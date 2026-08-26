@@ -37,9 +37,6 @@ app.add_middleware(
 )
 
 
-# Remove the custom_swagger_ui_html route entirely
-
-
 @app.get("/")
 async def root():
     """Health check endpoint"""

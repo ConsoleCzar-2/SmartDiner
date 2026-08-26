@@ -13,9 +13,9 @@ interface MessageListProps {
 export function MessageList({ messages, isLoading, error }: MessageListProps) {
     return (
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
-            {messages.map((message) => (
+            {messages.map((message, index) => (
                 <motion.div
-                    key={message.id}
+                    key={message.id || index}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={

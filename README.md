@@ -4,12 +4,22 @@ AI-powered restaurant assistant that guarantees allergen safety, budget complian
 
 ## Current Project Status
 
-**Milestone Reached:** Core Engineering & Full-Stack Integration (Step 9 of 14 Completed)
+**Milestone Reached:** Prompt Optimization & Documentation (Step 12 of 14 Completed)
 - **Backend Pipeline:** End-to-end integration of LLM Constraint Extraction → SQL DB Filtering → ILP PuLP Solver → LLM Explanation Generation is operational.
-- **Frontend:** Next.js App Router frontend integrated with real-time API routes.
-- **Unified Authentication:** JWT-based robust authentication combining both Customer workflows and Staff/Admin RBAC.
-- **Admin Panel:** Secure portal for staff featuring privacy-preserving Conversation Audit Logs and dynamic Metrics Dashboards.
-- **Up Next:** Automated Testing Suite (Pytest), Prompt Evaluations, and comprehensive Documentation (Steps 10-12).
+- **Frontend:** Next.js App Router frontend integrated with real-time API routes, featuring a dedicated Visual Menu browser and a dynamic AI chat interface with detailed order tickets.
+- **LLM Optimization:** Upgraded schema rules (nullable fields) and migrated to **Gemini 3.5 Flash Lite** for lightning-fast, high-volume constraint extraction and explanations.
+- **Math Solver Polish:** Hardened the Integer Linear Programming (ILP) solver with `MaxServingsConstraint` (for infinite budgets) and `NonVegServingsConstraint` (to mathematically guarantee dietary diversity).
+- **Up Next:** Terraform IaC & GCP Deployment (Step 13).
+
+## Comprehensive Documentation
+
+For a deep dive into the system's design and engineering rationale, please refer to the following documents:
+- [Product Requirements Document (PRD)](docs/PRD.md)
+- [Architecture & Pipeline Design](docs/ARCHITECTURE.md)
+- [Database & ERD](docs/DATABASE.md)
+- [REST API Reference](docs/API.md)
+- [Prompt Engineering & LLM Integration](docs/PROMPTS.md)
+- [Engineering Decision Log](docs/DECISION_LOG.md)
 
 ---
 

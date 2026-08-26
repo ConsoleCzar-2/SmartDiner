@@ -26,7 +26,7 @@ export function RestaurantSelector() {
 
     const continueToChat = () => {
         if (selected) {
-            router.push(`/chat?restaurant_id=${selected.id}`);
+            router.push(`/restaurant/${selected.id}`);
         }
     };
     return (
@@ -156,7 +156,7 @@ export function RestaurantSelector() {
                         disabled={!selected}
                         className="mt-5 w-full bg-[#f6a61d] text-[#24190b] hover:bg-[#ffc152]"
                     >
-                        Plan this table <ArrowRight className="ml-1 h-4 w-4" />
+                        Browse Menu <ArrowRight className="ml-1 h-4 w-4" />
                     </Button>
                 </div>
             </div>

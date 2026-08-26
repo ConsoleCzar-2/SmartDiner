@@ -14,6 +14,8 @@ from app.services.explanation_generator import generate_explanation
 from app.models.restaurant import Restaurant
 from app.models.conversation import Conversation
 from sqlalchemy import select
+import uuid
+from datetime import datetime
 async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: str) -> ChatResponse:
     """
     Full recommendation pipeline:
@@ -53,7 +55,7 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: 
     )
 
     # --- Step 2: SQL Deterministic Filter ---
-    filtered = await filter_menu_items(db, request.restaurant_id, constraints)
+    filtered = await filter_menu_items(db, str(request.restaurant_id), constraints)
     veg_items = filtered["veg"]
     nonveg_items = filtered["nonveg"]
 
@@ -108,8 +110,18 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: 
     # Append to conversation history
     # The JSONB field needs to be updated by reassignment or via mutable dict
     new_messages = list(conversation.messages)
-    new_messages.append({"role": "user", "content": request.message})
-    new_messages.append({"role": "assistant", "content": explanation})
+    new_messages.append({
+        "id": str(uuid.uuid4()),
+        "role": "user",
+        "content": request.message,
+        "createdAt": datetime.utcnow().isoformat() + "Z"
+    })
+    new_messages.append({
+        "id": str(uuid.uuid4()),
+        "role": "assistant",
+        "content": explanation,
+        "createdAt": datetime.utcnow().isoformat() + "Z"
+    })
     
     conversation.messages = new_messages
     conversation.current_constraints = constraints.model_dump()

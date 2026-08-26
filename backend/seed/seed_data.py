@@ -14,6 +14,8 @@ from app.models.menu_item import MenuItem
 from app.models.allergen import Allergen
 from app.models.ingredient import Ingredient, MenuItemIngredient, IngredientAllergen
 from app.models.dietary_tag import DietaryTag, MenuItemTag
+from app.models.admin_user import AdminUser
+from app.services.auth import get_password_hash
 from app.database import Base, engine, AsyncSessionLocal
 
 async def seed():
@@ -28,9 +30,9 @@ async def seed():
 
         # 1. Create Restaurants
         restaurants_data = [
-            {"name": "Spice Garden", "address": "123 Curry Lane", "cuisine_type": "North Indian"},
-            {"name": "Dragon's Wok", "address": "456 Silk Road", "cuisine_type": "Chinese"},
-            {"name": "The Grand Kitchen", "address": "789 Main St", "cuisine_type": "Other"}
+            {"name": "Spice Garden", "address": "123 Curry Lane", "cuisine_type": "North Indian", "image_url": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&q=80"},
+            {"name": "Dragon's Wok", "address": "456 Silk Road", "cuisine_type": "Chinese", "image_url": "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=500&q=80"},
+            {"name": "The Grand Kitchen", "address": "789 Main St", "cuisine_type": "Other", "image_url": "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=500&q=80"}
         ]
         restaurants = []
         for rd in restaurants_data:
@@ -164,6 +166,33 @@ async def seed():
         
         await session.commit()
         print(f"Successfully seeded {len(all_items_to_add)} menu items across {len(restaurants)} restaurants.")
+
+        # 5. Create Admin Users
+        result = await session.execute(select(AdminUser).where(AdminUser.email == "platform@smartdiner.com"))
+        platform_admin = result.scalars().first()
+        if not platform_admin:
+            platform_admin = AdminUser(
+                email="platform@smartdiner.com",
+                password_hash=get_password_hash("admin123"),
+                role="PLATFORM_ADMIN",
+                restaurant_id=None
+            )
+            session.add(platform_admin)
+
+        if restaurants:
+            result = await session.execute(select(AdminUser).where(AdminUser.email == "manager@smartdiner.com"))
+            restaurant_admin = result.scalars().first()
+            if not restaurant_admin:
+                restaurant_admin = AdminUser(
+                    email="manager@smartdiner.com",
+                    password_hash=get_password_hash("manager123"),
+                    role="RESTAURANT_ADMIN",
+                    restaurant_id=str(restaurants[0].id)
+                )
+                session.add(restaurant_admin)
+        
+        await session.commit()
+        print("Admin users seeded successfully!")
 
 if __name__ == "__main__":
     asyncio.run(seed())

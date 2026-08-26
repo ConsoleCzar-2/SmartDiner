@@ -61,6 +61,15 @@ def optimize_menu(veg_items: list[MenuItem], nonveg_items: list[MenuItem], const
             }
         prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in veg_items]) >= veg_people, "VegServingsConstraint"
 
+    # D. Non-Vegetarian Servings (Ensure non-vegetarians get some non-veg food)
+    nonveg_people = constraints.non_vegetarian_count or 0
+    if nonveg_people > 0 and nonveg_items:
+        prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in nonveg_items]) >= nonveg_people, "NonVegServingsConstraint"
+
+    # E. Reasonable Feast Limit (Prevent ordering the entire menu if budget is unrestricted)
+    # 4 servings per person is an absolute upper limit for a massive feast.
+    prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in all_items]) <= total_people * 4, "MaxServingsConstraint"
+
     # --- 5. Solve the Problem ---
     # Disable logs so it doesn't spam the console during API requests
     prob.solve(pulp.PULP_CBC_CMD(msg=0))

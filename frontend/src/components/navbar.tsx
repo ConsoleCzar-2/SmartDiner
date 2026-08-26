@@ -77,7 +77,7 @@ export function Navbar() {
                     </span>
                     <span>
                         <span className="block text-sm font-black tracking-[-.06em] text-white">
-                            smart<span className="text-[#f6a61d]">diner</span>
+                            Smart<span className="text-[#f6a61d]">Diner</span>
                         </span>
                         <span className="block text-[8px] font-semibold uppercase tracking-[.18em] text-zinc-500">
                             governed dining

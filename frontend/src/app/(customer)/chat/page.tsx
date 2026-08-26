@@ -32,7 +32,7 @@ function ChatContent() {
     const [messages, setMessages] = useState<ConversationMessage[]>(initialMessages);
     const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
     const [conversationId, setConversationId] = useState<string | null>(null);
-    const [restaurant, setRestaurant] = useState({ id: "", name: "" });
+    const [restaurant, setRestaurant] = useState<{ id: string; name: string; image_url: string | null }>({ id: "", name: "", image_url: null });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +52,7 @@ function ChatContent() {
             .then((data) => {
                 const found = data.find((r) => r.id === restaurantId);
                 if (found) {
-                    setRestaurant({ id: found.id, name: found.name });
+                    setRestaurant({ id: found.id, name: found.name, image_url: found.image_url });
                     // Fetch active chat
                     import("@/lib/api").then(({ fetchActiveChat }) => {
                         fetchActiveChat(found.id).then((chatData) => {
@@ -125,13 +125,22 @@ function ChatContent() {
                 <ArrowLeft className="h-3.5 w-3.5" /> Change venue
             </Link>
             <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
-                <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#f6a61d]">
-                        Ordering at {restaurant.name}
-                    </p>
-                    <h1 className="mt-2 text-3xl font-black tracking-[-.06em] text-white sm:text-4xl">
-                        Tell us what the table needs.
-                    </h1>
+                <div className="flex items-center gap-4">
+                    {restaurant.image_url && (
+                        <img 
+                            src={restaurant.image_url} 
+                            alt={restaurant.name} 
+                            className="h-16 w-16 rounded-lg object-cover border border-zinc-800"
+                        />
+                    )}
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#f6a61d]">
+                            Ordering at {restaurant.name}
+                        </p>
+                        <h1 className="mt-2 text-3xl font-black tracking-[-.06em] text-white sm:text-4xl">
+                            Tell us what the table needs.
+                        </h1>
+                    </div>
                 </div>
                 <span className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[.06] px-3 py-2 text-[10px] font-semibold uppercase tracking-[.12em] text-emerald-300">
                     <ShieldCheck className="h-3.5 w-3.5" /> Safety filter active
