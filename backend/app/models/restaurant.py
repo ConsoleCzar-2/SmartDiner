@@ -10,6 +10,7 @@ class Restaurant(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid7()))
     name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     cuisine_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)

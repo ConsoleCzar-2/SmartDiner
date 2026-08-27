@@ -7,6 +7,8 @@ class RestaurantResponse(BaseModel):
     name: str
     cuisine_type: Optional[str] = None
     image_url: Optional[str] = None
+    description: Optional[str] = None
+    address: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

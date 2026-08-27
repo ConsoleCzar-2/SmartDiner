@@ -92,6 +92,11 @@ export default function RestaurantMenuPage({
                                 {restaurant.address}
                             </p>
                         )}
+                        {restaurant.description && (
+                            <p className="mt-3 max-w-2xl text-sm text-zinc-400 sm:text-base">
+                                {restaurant.description}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
