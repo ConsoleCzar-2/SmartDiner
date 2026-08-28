@@ -46,3 +46,4 @@ isort==5.13.2
 ruff==0.4.4
 mypy==1.10.0
 pre-commit==3.7.1
+google-cloud-storage==2.14.0

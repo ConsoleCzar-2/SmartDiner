@@ -11,7 +11,7 @@ function resolveApiBaseUrl(): string {
 
     // Local default for development only.
     if (process.env.NODE_ENV !== "production") {
-        return "http://localhost:8000";
+        return "http://127.0.0.1:8000";
     }
 
     throw new Error(
@@ -129,6 +129,26 @@ export async function fetchAdminConversations(token: string): Promise<any> {
     });
     if (!response.ok) {
         throw new Error("Failed to fetch conversations");
+    }
+    return response.json();
+}
+
+export async function fetchAdminConversation(token: string, conversationId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/conversations/${conversationId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) {
+        throw new Error("Failed to fetch conversation");
+    }
+    return response.json();
+}
+
+export async function fetchAdminAuditLogs(token: string, conversationId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/audit-logs/${conversationId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) {
+        throw new Error("Failed to fetch audit logs");
     }
     return response.json();
 }

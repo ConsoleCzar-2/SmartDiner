@@ -22,6 +22,7 @@ class ConversationResponse(BaseModel):
     user_id: Optional[str] = None
     customer_name: Optional[str] = None
     restaurant_id: Optional[str] = None
+    restaurant_name: Optional[str] = None
     messages: List[Dict[str, Any]]
     current_constraints: Dict[str, Any]
     current_cart: List[Dict[str, Any]]

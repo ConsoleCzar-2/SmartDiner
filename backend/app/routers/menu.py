@@ -43,9 +43,23 @@ async def get_restaurant(restaurant_id: str, db: AsyncSession = Depends(get_db))
     return restaurant
 
 
+import time
+
+# Simple in-memory cache to prevent N+1 join queries on every load
+MENU_CACHE = {}
+CACHE_TTL = 300 # 5 minutes
+
 @router.get("/restaurants/{restaurant_id}/menu", response_model=List[MenuItemResponse])
 async def get_restaurant_menu(restaurant_id: str, db: AsyncSession = Depends(get_db)):
     """Fetch all active menu items for a specific restaurant."""
+    current_time = time.time()
+    
+    # Check cache
+    if restaurant_id in MENU_CACHE:
+        cached_data, timestamp = MENU_CACHE[restaurant_id]
+        if current_time - timestamp < CACHE_TTL:
+            return cached_data
+
     query = select(MenuItem).options(
         selectinload(MenuItem.ingredients).selectinload(Ingredient.allergens)
     ).where(
@@ -62,5 +76,8 @@ async def get_restaurant_menu(restaurant_id: str, db: AsyncSession = Depends(get
             for allergen in ingredient.allergens:
                 allergens.add(allergen.name)
         setattr(item, "allergens", list(allergens))
+        
+    # Update cache
+    MENU_CACHE[restaurant_id] = (menu_items, current_time)
         
     return menu_items

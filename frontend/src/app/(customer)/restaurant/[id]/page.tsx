@@ -134,7 +134,7 @@ export default function RestaurantMenuPage({
                                                 {item.name}
                                             </h3>
                                             <span className="shrink-0 font-medium text-[#f6a61d]">
-                                                ${item.price.toFixed(2)}
+                                                ₹{item.price.toFixed(2)}
                                             </span>
                                         </div>
                                         <p className="mt-2 flex-1 text-sm text-zinc-400 line-clamp-3">

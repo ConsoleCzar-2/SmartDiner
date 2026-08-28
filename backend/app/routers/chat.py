@@ -11,6 +11,8 @@ from app.services.auth import get_current_user
 from app.models.user import User
 from app.models.conversation import Conversation
 from typing import Optional
+from fastapi import BackgroundTasks
+from app.services.audit_logger import upload_audit_log_to_gcs
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -18,6 +20,7 @@ router = APIRouter(prefix="/api", tags=["chat"])
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     request: ChatRequest, 
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -28,7 +31,26 @@ async def chat(
     filters the menu via SQL, solves the optimal combination via ILP,
     and returns a structured cart with a friendly explanation.
     """
-    return await process_chat_request(request, db, current_user.id)
+    response = await process_chat_request(request, db, current_user.id)
+    
+    # Enqueue the audit log to GCS asynchronously
+    background_tasks.add_task(
+        upload_audit_log_to_gcs,
+        conversation_id=str(response.conversation_id),
+        user_id=str(current_user.id),
+        restaurant_id=str(request.restaurant_id),
+        user_message=request.message,
+        extracted_constraints=response.extracted_constraints.model_dump(),
+        solver_output={
+            "status": response.recommendation.status,
+            "total_cost": response.recommendation.computed_total,
+            "total_servings": response.recommendation.total_servings
+        },
+        llm_explanation=response.explanation,
+        recommended_cart=[item.model_dump() for item in response.recommendation.items]
+    )
+    
+    return response
 
 @router.get("/chat/active")
 async def get_active_conversation(

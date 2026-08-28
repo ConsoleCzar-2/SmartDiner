@@ -4,13 +4,15 @@ AI-powered restaurant assistant that guarantees allergen safety, budget complian
 
 ## Current Project Status
 
-**Milestone Reached:** Production Deployment (Step 13 of 14 Completed)
+**Milestone Reached:** Compliance & Audit Logging (Step 14 of 16 Completed)
+- **Compliance Logging:** Fully implemented asynchronous WORM (Write Once, Read Many) audit logging to Google Cloud Storage to preserve every conversation and its LLM/Solver artifacts immutably.
 - **Backend Pipeline:** End-to-end integration of LLM Constraint Extraction → SQL DB Filtering → ILP PuLP Solver → LLM Explanation Generation is operational.
-- **Frontend:** Next.js App Router frontend integrated with real-time API routes, featuring a dedicated Visual Menu browser and a dynamic AI chat interface with detailed order tickets.
+- **Frontend:** Next.js App Router frontend integrated with real-time API routes, featuring a dedicated Visual Menu browser (with localized ₹ currency formatting), dynamic AI chat interface, and Admin Dashboard with structured Audit Log viewers.
+- **Performance:** Implemented in-memory TTL caching on heavy menu endpoints to eliminate N+1 DB queries and reduce latency down to milliseconds.
 - **LLM Optimization:** Upgraded schema rules (nullable fields) and migrated to **Gemini 3.5 Flash Lite** for lightning-fast, high-volume constraint extraction and explanations.
 - **Math Solver Polish:** Hardened the Integer Linear Programming (ILP) solver with `MaxServingsConstraint` (for infinite budgets) and `NonVegServingsConstraint` (to mathematically guarantee dietary diversity).
 - **Deployed:** Backend on **Render** (Docker + managed PostgreSQL), Frontend on **Vercel** (edge network). Full GCP/Terraform IaC migration planned as future work.
-- **Up Next:** Demo Video & Final Submission (Step 14).
+- **Up Next:** Extended Features (Cart, RBAC, Menu Management) (Step 15).
 
 ### Current Deployment Notes (2026-08-26)
 - Backend: `https://smartdiner-backend.onrender.com`; frontend builds must set `NEXT_PUBLIC_API_URL` to this URL. `NEXT_PUBLIC_API_BASE_URL` remains supported as a legacy alias.
