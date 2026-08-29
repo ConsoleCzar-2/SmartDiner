@@ -14,6 +14,7 @@ export interface RecommendedItem {
     spice_level: string;
     serving_size: number;
     total_servings: number;
+    image_url?: string | null;
 }
 export interface RecommendationResult {
     status: "Optimal" | "Infeasible" | string;
