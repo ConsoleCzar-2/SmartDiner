@@ -68,13 +68,17 @@ export default function RestaurantMenuPage({
         
         // If adding a new item, use addToCart which fetches item details from DB
         if (currentQuantity === 0 && delta > 0) {
+            if (typeof window !== "undefined" && !localStorage.getItem("userToken")) {
+                toast.error("Please sign in to add items to your cart");
+                return;
+            }
             try {
                 const data = await addToCart({ restaurant_id: id, menu_item_id: itemId, quantity: 1 });
                 setConversationId(data.conversation_id);
                 setCartItems(data.cart);
                 toast.success("Added to cart");
             } catch(e: any) {
-                toast.error(e.message);
+                toast.error("Please sign in to add items to your cart");
             }
             return;
         }

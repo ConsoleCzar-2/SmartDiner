@@ -49,7 +49,7 @@ function NavbarContent() {
     );
 }
 
-import { ShoppingCart, ListOrdered } from "lucide-react";
+import { ShoppingCart, ListOrdered, LogOut } from "lucide-react";
 import { CartDrawer } from "./cart-drawer";
 
 function NavbarActions({ isLoggedIn, userName, onLogout }: { isLoggedIn: boolean, userName: string, onLogout: () => void }) {
@@ -86,8 +86,9 @@ function NavbarActions({ isLoggedIn, userName, onLogout }: { isLoggedIn: boolean
                     </div>
                     <button
                         onClick={onLogout}
-                        className="rounded-full border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                        className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-[10px] sm:text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
                     >
+                        <LogOut className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                         Sign Out
                     </button>
                 </div>
