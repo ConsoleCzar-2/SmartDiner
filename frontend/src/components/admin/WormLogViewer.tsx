@@ -102,7 +102,7 @@ export default function WormLogViewer({ log, viewMode }: { log: any; viewMode: '
                                 <tr key={i}>
                                     <td className="py-3">
                                         <div className="font-medium text-white">{item.name}</div>
-                                        <div className="text-[10px] text-zinc-500 mt-0.5">{item.category} • {item.is_veg ? 'Veg' : 'Non-Veg'}</div>
+                                        <div className="text-[10px] text-zinc-500 mt-0.5">{item.category} • {item.dietary_preference || (item.is_veg ? 'Veg' : 'Non-Veg')}</div>
                                     </td>
                                     <td className="py-3 font-medium text-zinc-300">{item.quantity}x</td>
                                     <td className="py-3 text-right text-zinc-400">₹{item.unit_price}</td>

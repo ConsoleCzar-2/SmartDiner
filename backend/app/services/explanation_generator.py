@@ -21,7 +21,7 @@ async def generate_explanation(solver_output: dict, constraints: ExtractedConstr
             "quantity": entry["quantity"],
             "unit_price": float(item.price),
             "subtotal": entry["subtotal"],
-            "is_veg": item.is_veg,
+            "dietary_preference": item.dietary_preference,
             "category": item.category,
         })
 

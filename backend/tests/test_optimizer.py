@@ -11,7 +11,7 @@ def create_mock_item(name, price, is_veg, serving_size, rating):
         restaurant_id=uuid.uuid4(),
         name=name,
         price=price,
-        is_veg=is_veg,
+        dietary_preference="Vegetarian" if is_veg else "Non-Vegetarian",
         spice_level="Low",
         cuisine="Indian",
         serving_size=serving_size,
@@ -76,7 +76,7 @@ def test_optimizer_veg_split(mock_menu):
     assert result["status"] == "Optimal"
     
     # Verify veg servings
-    veg_servings = sum(item["quantity"] * item["item"].serving_size for item in result["items"] if item["item"].is_veg)
+    veg_servings = sum(item["quantity"] * item["item"].serving_size for item in result["items"] if (item["item"].dietary_preference == "Vegetarian"))
     assert veg_servings >= 2
     assert result["total_servings"] >= 4
 

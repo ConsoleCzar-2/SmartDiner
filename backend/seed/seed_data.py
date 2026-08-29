@@ -129,7 +129,7 @@ async def seed():
                         name=name,
                         category=item['category'],
                         price=price,
-                        is_veg=item['is_veg'],
+                        dietary_preference=item.get('dietary_preference', 'Vegetarian'),
                         spice_level=item['spice_level'],
                         cuisine=item['cuisine'],
                         serving_size=item.get('serving_size', 1),
@@ -143,90 +143,90 @@ async def seed():
         # Diverse base menus
         base_indian = [
             # Starters
-            {"name": "Paneer Tikka", "category": "Starter", "base_price": 280, "is_veg": True, "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Paneer", "Onion", "Bell Pepper"], "tags": ["Vegetarian"]},
-            {"name": "Chicken Tikka", "category": "Starter", "base_price": 320, "is_veg": False, "spice_level": "High", "cuisine": "North Indian", "ingredients": ["Chicken", "Onion", "Mustard Seeds"], "tags": ["Non-Vegetarian"]},
-            {"name": "Mushroom Tikka", "category": "Starter", "base_price": 260, "is_veg": True, "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Mushroom", "Onion", "Tomato"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Gobi Manchurian", "category": "Starter", "base_price": 220, "is_veg": True, "spice_level": "Medium", "cuisine": "Indo-Chinese", "ingredients": ["Flour", "Soy Sauce", "Garlic"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Fish Tikka", "category": "Starter", "base_price": 350, "is_veg": False, "spice_level": "High", "cuisine": "North Indian", "ingredients": ["Fish", "Mustard Seeds", "Garlic"], "tags": ["Non-Vegetarian"]},
+            {"name": "Paneer Tikka", "category": "Starter", "base_price": 280, "dietary_preference": "Vegetarian", "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Paneer", "Onion", "Bell Pepper"], "tags": ["Vegetarian"]},
+            {"name": "Chicken Tikka", "category": "Starter", "base_price": 320, "dietary_preference": "Non-Vegetarian", "spice_level": "High", "cuisine": "North Indian", "ingredients": ["Chicken", "Onion", "Mustard Seeds"], "tags": ["Non-Vegetarian"]},
+            {"name": "Mushroom Tikka", "category": "Starter", "base_price": 260, "dietary_preference": "Vegetarian", "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Mushroom", "Onion", "Tomato"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Gobi Manchurian", "category": "Starter", "base_price": 220, "dietary_preference": "Vegetarian", "spice_level": "Medium", "cuisine": "Indo-Chinese", "ingredients": ["Flour", "Soy Sauce", "Garlic"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Fish Tikka", "category": "Starter", "base_price": 350, "dietary_preference": "Non-Vegetarian", "spice_level": "High", "cuisine": "North Indian", "ingredients": ["Fish", "Mustard Seeds", "Garlic"], "tags": ["Non-Vegetarian"]},
             
             # Mains
-            {"name": "Dal Makhani", "category": "Main Course", "base_price": 250, "is_veg": True, "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Lentils", "Butter", "Tomato"], "tags": ["Vegetarian"]},
-            {"name": "Dal Tadka", "category": "Main Course", "base_price": 210, "is_veg": True, "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Lentils", "Garlic", "Tomato"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Butter Chicken", "category": "Main Course", "base_price": 380, "is_veg": False, "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Chicken", "Butter", "Tomato", "Cashews"], "tags": ["Non-Vegetarian"]},
-            {"name": "Mutton Rogan Josh", "category": "Main Course", "base_price": 450, "is_veg": False, "spice_level": "High", "cuisine": "North Indian", "ingredients": ["Lamb", "Onion", "Garlic"], "tags": ["Non-Vegetarian", "Halal"]},
-            {"name": "Palak Paneer", "category": "Main Course", "base_price": 290, "is_veg": True, "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Paneer", "Garlic", "Tomato"], "tags": ["Vegetarian"]},
-            {"name": "Jain Paneer Masala", "category": "Main Course", "base_price": 310, "is_veg": True, "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Paneer", "Tomato", "Cashews"], "tags": ["Vegetarian", "Jain"]},
-            {"name": "Masala Dosa", "category": "Main Course", "base_price": 180, "is_veg": True, "spice_level": "Medium", "cuisine": "South Indian", "ingredients": ["Rice", "Lentils", "Potato", "Mustard Seeds"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Idli Sambhar", "category": "Main Course", "base_price": 140, "is_veg": True, "spice_level": "Low", "cuisine": "South Indian", "ingredients": ["Rice", "Lentils", "Curry Leaves"], "tags": ["Vegetarian", "Vegan", "Jain"]},
-            {"name": "Fish Curry", "category": "Main Course", "base_price": 400, "is_veg": False, "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Fish", "Tomato", "Onion", "Mustard Seeds"], "tags": ["Non-Vegetarian"]},
+            {"name": "Dal Makhani", "category": "Main Course", "base_price": 250, "dietary_preference": "Vegetarian", "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Lentils", "Butter", "Tomato"], "tags": ["Vegetarian"]},
+            {"name": "Dal Tadka", "category": "Main Course", "base_price": 210, "dietary_preference": "Vegetarian", "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Lentils", "Garlic", "Tomato"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Butter Chicken", "category": "Main Course", "base_price": 380, "dietary_preference": "Non-Vegetarian", "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Chicken", "Butter", "Tomato", "Cashews"], "tags": ["Non-Vegetarian"]},
+            {"name": "Mutton Rogan Josh", "category": "Main Course", "base_price": 450, "dietary_preference": "Non-Vegetarian", "spice_level": "High", "cuisine": "North Indian", "ingredients": ["Lamb", "Onion", "Garlic"], "tags": ["Non-Vegetarian", "Halal"]},
+            {"name": "Palak Paneer", "category": "Main Course", "base_price": 290, "dietary_preference": "Vegetarian", "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Paneer", "Garlic", "Tomato"], "tags": ["Vegetarian"]},
+            {"name": "Jain Paneer Masala", "category": "Main Course", "base_price": 310, "dietary_preference": "Vegetarian", "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Paneer", "Tomato", "Cashews"], "tags": ["Vegetarian", "Jain"]},
+            {"name": "Masala Dosa", "category": "Main Course", "base_price": 180, "dietary_preference": "Vegetarian", "spice_level": "Medium", "cuisine": "South Indian", "ingredients": ["Rice", "Lentils", "Potato", "Mustard Seeds"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Idli Sambhar", "category": "Main Course", "base_price": 140, "dietary_preference": "Vegetarian", "spice_level": "Low", "cuisine": "South Indian", "ingredients": ["Rice", "Lentils", "Curry Leaves"], "tags": ["Vegetarian", "Vegan", "Jain"]},
+            {"name": "Fish Curry", "category": "Main Course", "base_price": 400, "dietary_preference": "Non-Vegetarian", "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Fish", "Tomato", "Onion", "Mustard Seeds"], "tags": ["Non-Vegetarian"]},
             
             # Breads
-            {"name": "Butter Naan", "category": "Bread", "base_price": 60, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Flour", "Butter"], "tags": ["Vegetarian"]},
-            {"name": "Garlic Naan", "category": "Bread", "base_price": 75, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Flour", "Butter", "Garlic"], "tags": ["Vegetarian"]},
-            {"name": "Tandoori Roti", "category": "Bread", "base_price": 40, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Flour"], "tags": ["Vegetarian", "Vegan", "Jain"]},
+            {"name": "Butter Naan", "category": "Bread", "base_price": 60, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Flour", "Butter"], "tags": ["Vegetarian"]},
+            {"name": "Garlic Naan", "category": "Bread", "base_price": 75, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Flour", "Butter", "Garlic"], "tags": ["Vegetarian"]},
+            {"name": "Tandoori Roti", "category": "Bread", "base_price": 40, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Flour"], "tags": ["Vegetarian", "Vegan", "Jain"]},
             
             # Rice
-            {"name": "Chicken Biryani", "category": "Rice", "base_price": 420, "is_veg": False, "spice_level": "Medium", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Rice", "Chicken", "Onion", "Cashews"], "tags": ["Non-Vegetarian", "Halal"]},
-            {"name": "Mutton Biryani", "category": "Rice", "base_price": 520, "is_veg": False, "spice_level": "High", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Rice", "Lamb", "Onion", "Garlic"], "tags": ["Non-Vegetarian", "Halal"]},
-            {"name": "Veg Pulao", "category": "Rice", "base_price": 240, "is_veg": True, "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Rice", "Cashews", "Onion"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Steamed Rice", "category": "Rice", "base_price": 120, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Rice"], "tags": ["Vegetarian", "Vegan", "Jain"]},
+            {"name": "Chicken Biryani", "category": "Rice", "base_price": 420, "dietary_preference": "Non-Vegetarian", "spice_level": "Medium", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Rice", "Chicken", "Onion", "Cashews"], "tags": ["Non-Vegetarian", "Halal"]},
+            {"name": "Mutton Biryani", "category": "Rice", "base_price": 520, "dietary_preference": "Non-Vegetarian", "spice_level": "High", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Rice", "Lamb", "Onion", "Garlic"], "tags": ["Non-Vegetarian", "Halal"]},
+            {"name": "Veg Pulao", "category": "Rice", "base_price": 240, "dietary_preference": "Vegetarian", "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Rice", "Cashews", "Onion"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Steamed Rice", "category": "Rice", "base_price": 120, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Rice"], "tags": ["Vegetarian", "Vegan", "Jain"]},
             
             # Sides, Beverages, Desserts
-            {"name": "Mixed Raita", "category": "Side", "base_price": 100, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Milk", "Onion", "Tomato"], "tags": ["Vegetarian"]},
-            {"name": "Masala Chai", "category": "Beverage", "base_price": 80, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Tea Leaves", "Milk", "Sugar"], "tags": ["Vegetarian"]},
-            {"name": "Sweet Lassi", "category": "Beverage", "base_price": 110, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Milk", "Sugar"], "tags": ["Vegetarian"]},
-            {"name": "Gulab Jamun", "category": "Dessert", "base_price": 160, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Flour", "Milk", "Sugar"], "tags": ["Vegetarian"]},
-            {"name": "Rasmalai", "category": "Dessert", "base_price": 200, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Paneer", "Milk", "Sugar", "Almonds"], "tags": ["Vegetarian"]}
+            {"name": "Mixed Raita", "category": "Side", "base_price": 100, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Milk", "Onion", "Tomato"], "tags": ["Vegetarian"]},
+            {"name": "Masala Chai", "category": "Beverage", "base_price": 80, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Tea Leaves", "Milk", "Sugar"], "tags": ["Vegetarian"]},
+            {"name": "Sweet Lassi", "category": "Beverage", "base_price": 110, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Milk", "Sugar"], "tags": ["Vegetarian"]},
+            {"name": "Gulab Jamun", "category": "Dessert", "base_price": 160, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Flour", "Milk", "Sugar"], "tags": ["Vegetarian"]},
+            {"name": "Rasmalai", "category": "Dessert", "base_price": 200, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "North Indian", "serving_size": 2, "ingredients": ["Paneer", "Milk", "Sugar", "Almonds"], "tags": ["Vegetarian"]}
         ]
 
         base_chinese = [
             # Starters
-            {"name": "Spring Roll", "category": "Starter", "base_price": 200, "is_veg": True, "spice_level": "Low", "cuisine": "Chinese", "ingredients": ["Flour", "Onion", "Tomato"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Chicken 65", "category": "Starter", "base_price": 280, "is_veg": False, "spice_level": "Extreme", "cuisine": "Chinese", "ingredients": ["Chicken", "Garlic"], "tags": ["Non-Vegetarian", "Halal"]},
-            {"name": "Chilli Paneer", "category": "Starter", "base_price": 260, "is_veg": True, "spice_level": "High", "cuisine": "Indo-Chinese", "ingredients": ["Paneer", "Soy Sauce", "Bell Pepper"], "tags": ["Vegetarian"]},
-            {"name": "Prawn Crackers", "category": "Starter", "base_price": 150, "is_veg": False, "spice_level": "Low", "cuisine": "Chinese", "ingredients": ["Shrimp", "Flour"], "tags": ["Non-Vegetarian"]},
-            {"name": "Egg Drop Soup", "category": "Starter", "base_price": 150, "is_veg": False, "spice_level": "Low", "cuisine": "Chinese", "ingredients": ["Eggs", "Onion"], "tags": ["Eggetarian"]},
+            {"name": "Spring Roll", "category": "Starter", "base_price": 200, "dietary_preference": "Vegetarian", "spice_level": "Low", "cuisine": "Chinese", "ingredients": ["Flour", "Onion", "Tomato"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Chicken 65", "category": "Starter", "base_price": 280, "dietary_preference": "Non-Vegetarian", "spice_level": "Extreme", "cuisine": "Chinese", "ingredients": ["Chicken", "Garlic"], "tags": ["Non-Vegetarian", "Halal"]},
+            {"name": "Chilli Paneer", "category": "Starter", "base_price": 260, "dietary_preference": "Vegetarian", "spice_level": "High", "cuisine": "Indo-Chinese", "ingredients": ["Paneer", "Soy Sauce", "Bell Pepper"], "tags": ["Vegetarian"]},
+            {"name": "Prawn Crackers", "category": "Starter", "base_price": 150, "dietary_preference": "Non-Vegetarian", "spice_level": "Low", "cuisine": "Chinese", "ingredients": ["Shrimp", "Flour"], "tags": ["Non-Vegetarian"]},
+            {"name": "Egg Drop Soup", "category": "Starter", "base_price": 150, "dietary_preference": "Non-Vegetarian", "spice_level": "Low", "cuisine": "Chinese", "ingredients": ["Eggs", "Onion"], "tags": ["Eggetarian"]},
             
             # Mains
-            {"name": "Kung Pao Chicken", "category": "Main Course", "base_price": 340, "is_veg": False, "spice_level": "High", "cuisine": "Chinese", "ingredients": ["Chicken", "Soy Sauce", "Peanut Butter"], "tags": ["Non-Vegetarian"]},
-            {"name": "Sweet & Sour Pork", "category": "Main Course", "base_price": 380, "is_veg": False, "spice_level": "Medium", "cuisine": "Chinese", "ingredients": ["Pork", "Sugar", "Bell Pepper", "Onion"], "tags": ["Non-Vegetarian"]},
-            {"name": "Mapo Tofu", "category": "Main Course", "base_price": 290, "is_veg": True, "spice_level": "Extreme", "cuisine": "Chinese", "ingredients": ["Tofu", "Soy Sauce", "Garlic", "Sesame Oil"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Shrimp Chow Mein", "category": "Main Course", "base_price": 350, "is_veg": False, "spice_level": "Medium", "cuisine": "Chinese", "ingredients": ["Flour", "Shrimp", "Soy Sauce", "Onion"], "tags": ["Non-Vegetarian"]},
-            {"name": "Vegetable Hakka Noodles", "category": "Main Course", "base_price": 240, "is_veg": True, "spice_level": "Low", "cuisine": "Indo-Chinese", "ingredients": ["Flour", "Soy Sauce", "Bell Pepper"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Kung Pao Chicken", "category": "Main Course", "base_price": 340, "dietary_preference": "Non-Vegetarian", "spice_level": "High", "cuisine": "Chinese", "ingredients": ["Chicken", "Soy Sauce", "Peanut Butter"], "tags": ["Non-Vegetarian"]},
+            {"name": "Sweet & Sour Pork", "category": "Main Course", "base_price": 380, "dietary_preference": "Non-Vegetarian", "spice_level": "Medium", "cuisine": "Chinese", "ingredients": ["Pork", "Sugar", "Bell Pepper", "Onion"], "tags": ["Non-Vegetarian"]},
+            {"name": "Mapo Tofu", "category": "Main Course", "base_price": 290, "dietary_preference": "Vegetarian", "spice_level": "Extreme", "cuisine": "Chinese", "ingredients": ["Tofu", "Soy Sauce", "Garlic", "Sesame Oil"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Shrimp Chow Mein", "category": "Main Course", "base_price": 350, "dietary_preference": "Non-Vegetarian", "spice_level": "Medium", "cuisine": "Chinese", "ingredients": ["Flour", "Shrimp", "Soy Sauce", "Onion"], "tags": ["Non-Vegetarian"]},
+            {"name": "Vegetable Hakka Noodles", "category": "Main Course", "base_price": 240, "dietary_preference": "Vegetarian", "spice_level": "Low", "cuisine": "Indo-Chinese", "ingredients": ["Flour", "Soy Sauce", "Bell Pepper"], "tags": ["Vegetarian", "Vegan"]},
             
             # Rice
-            {"name": "Egg Fried Rice", "category": "Rice", "base_price": 220, "is_veg": False, "spice_level": "Low", "cuisine": "Chinese", "ingredients": ["Rice", "Soy Sauce", "Eggs", "Onion"], "tags": ["Eggetarian"]},
-            {"name": "Chicken Fried Rice", "category": "Rice", "base_price": 260, "is_veg": False, "spice_level": "Medium", "cuisine": "Chinese", "ingredients": ["Rice", "Soy Sauce", "Chicken", "Onion"], "tags": ["Non-Vegetarian"]},
-            {"name": "Veg Garlic Fried Rice", "category": "Rice", "base_price": 210, "is_veg": True, "spice_level": "Medium", "cuisine": "Chinese", "ingredients": ["Rice", "Soy Sauce", "Garlic"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Egg Fried Rice", "category": "Rice", "base_price": 220, "dietary_preference": "Non-Vegetarian", "spice_level": "Low", "cuisine": "Chinese", "ingredients": ["Rice", "Soy Sauce", "Eggs", "Onion"], "tags": ["Eggetarian"]},
+            {"name": "Chicken Fried Rice", "category": "Rice", "base_price": 260, "dietary_preference": "Non-Vegetarian", "spice_level": "Medium", "cuisine": "Chinese", "ingredients": ["Rice", "Soy Sauce", "Chicken", "Onion"], "tags": ["Non-Vegetarian"]},
+            {"name": "Veg Garlic Fried Rice", "category": "Rice", "base_price": 210, "dietary_preference": "Vegetarian", "spice_level": "Medium", "cuisine": "Chinese", "ingredients": ["Rice", "Soy Sauce", "Garlic"], "tags": ["Vegetarian", "Vegan"]},
             
             # Beverages, Desserts
-            {"name": "Jasmine Tea", "category": "Beverage", "base_price": 120, "is_veg": True, "spice_level": "None", "cuisine": "Chinese", "ingredients": ["Tea Leaves"], "tags": ["Vegetarian", "Vegan", "Jain"]},
-            {"name": "Boba Milk Tea", "category": "Beverage", "base_price": 180, "is_veg": True, "spice_level": "None", "cuisine": "Chinese", "ingredients": ["Tea Leaves", "Milk", "Sugar"], "tags": ["Vegetarian"]},
-            {"name": "Fried Ice Cream", "category": "Dessert", "base_price": 220, "is_veg": True, "spice_level": "None", "cuisine": "Chinese", "ingredients": ["Milk", "Flour", "Sugar"], "tags": ["Vegetarian"]},
+            {"name": "Jasmine Tea", "category": "Beverage", "base_price": 120, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Chinese", "ingredients": ["Tea Leaves"], "tags": ["Vegetarian", "Vegan", "Jain"]},
+            {"name": "Boba Milk Tea", "category": "Beverage", "base_price": 180, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Chinese", "ingredients": ["Tea Leaves", "Milk", "Sugar"], "tags": ["Vegetarian"]},
+            {"name": "Fried Ice Cream", "category": "Dessert", "base_price": 220, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Chinese", "ingredients": ["Milk", "Flour", "Sugar"], "tags": ["Vegetarian"]},
         ]
 
         base_other = [
             # Starters
-            {"name": "Classic Bruschetta", "category": "Starter", "base_price": 220, "is_veg": True, "spice_level": "Low", "cuisine": "Italian", "ingredients": ["Flour", "Tomato", "Garlic", "Olive Oil", "Basil"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Garlic Bread with Cheese", "category": "Bread", "base_price": 180, "is_veg": True, "spice_level": "None", "cuisine": "Italian", "ingredients": ["Flour", "Garlic", "Butter", "Cheese"], "tags": ["Vegetarian"]},
-            {"name": "Caesar Salad", "category": "Starter", "base_price": 250, "is_veg": True, "spice_level": "None", "cuisine": "Continental", "ingredients": ["Cheese", "Olive Oil", "Garlic"], "tags": ["Vegetarian", "Keto"]},
-            {"name": "Chicken Caesar Salad", "category": "Starter", "base_price": 320, "is_veg": False, "spice_level": "None", "cuisine": "Continental", "ingredients": ["Chicken", "Cheese", "Olive Oil", "Garlic"], "tags": ["Non-Vegetarian", "Keto"]},
+            {"name": "Classic Bruschetta", "category": "Starter", "base_price": 220, "dietary_preference": "Vegetarian", "spice_level": "Low", "cuisine": "Italian", "ingredients": ["Flour", "Tomato", "Garlic", "Olive Oil", "Basil"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Garlic Bread with Cheese", "category": "Bread", "base_price": 180, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Italian", "ingredients": ["Flour", "Garlic", "Butter", "Cheese"], "tags": ["Vegetarian"]},
+            {"name": "Caesar Salad", "category": "Starter", "base_price": 250, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Continental", "ingredients": ["Cheese", "Olive Oil", "Garlic"], "tags": ["Vegetarian", "Keto"]},
+            {"name": "Chicken Caesar Salad", "category": "Starter", "base_price": 320, "dietary_preference": "Non-Vegetarian", "spice_level": "None", "cuisine": "Continental", "ingredients": ["Chicken", "Cheese", "Olive Oil", "Garlic"], "tags": ["Non-Vegetarian", "Keto"]},
             
             # Mains
-            {"name": "Margherita Pizza", "category": "Main Course", "base_price": 450, "is_veg": True, "spice_level": "None", "cuisine": "Italian", "serving_size": 2, "ingredients": ["Flour", "Tomato", "Cheese", "Olive Oil", "Basil"], "tags": ["Vegetarian"]},
-            {"name": "Pepperoni Pizza", "category": "Main Course", "base_price": 550, "is_veg": False, "spice_level": "Medium", "cuisine": "Italian", "serving_size": 2, "ingredients": ["Flour", "Tomato", "Cheese", "Beef"], "tags": ["Non-Vegetarian"]},
-            {"name": "Spaghetti Bolognese", "category": "Main Course", "base_price": 420, "is_veg": False, "spice_level": "Low", "cuisine": "Italian", "ingredients": ["Flour", "Tomato", "Beef", "Garlic", "Olive Oil"], "tags": ["Non-Vegetarian"]},
-            {"name": "Penne Arrabbiata", "category": "Main Course", "base_price": 380, "is_veg": True, "spice_level": "High", "cuisine": "Italian", "ingredients": ["Flour", "Tomato", "Garlic", "Olive Oil", "Basil"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Grilled Salmon", "category": "Main Course", "base_price": 750, "is_veg": False, "spice_level": "Low", "cuisine": "Continental", "ingredients": ["Fish", "Olive Oil", "Garlic"], "tags": ["Non-Vegetarian", "Keto"]},
-            {"name": "Beef Steak", "category": "Main Course", "base_price": 850, "is_veg": False, "spice_level": "Medium", "cuisine": "Continental", "ingredients": ["Beef", "Olive Oil", "Garlic", "Butter"], "tags": ["Non-Vegetarian", "Keto"]},
-            {"name": "Mushroom Risotto", "category": "Main Course", "base_price": 480, "is_veg": True, "spice_level": "Low", "cuisine": "Italian", "ingredients": ["Rice", "Mushroom", "Cheese", "Butter"], "tags": ["Vegetarian"]},
+            {"name": "Margherita Pizza", "category": "Main Course", "base_price": 450, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Italian", "serving_size": 2, "ingredients": ["Flour", "Tomato", "Cheese", "Olive Oil", "Basil"], "tags": ["Vegetarian"]},
+            {"name": "Pepperoni Pizza", "category": "Main Course", "base_price": 550, "dietary_preference": "Non-Vegetarian", "spice_level": "Medium", "cuisine": "Italian", "serving_size": 2, "ingredients": ["Flour", "Tomato", "Cheese", "Beef"], "tags": ["Non-Vegetarian"]},
+            {"name": "Spaghetti Bolognese", "category": "Main Course", "base_price": 420, "dietary_preference": "Non-Vegetarian", "spice_level": "Low", "cuisine": "Italian", "ingredients": ["Flour", "Tomato", "Beef", "Garlic", "Olive Oil"], "tags": ["Non-Vegetarian"]},
+            {"name": "Penne Arrabbiata", "category": "Main Course", "base_price": 380, "dietary_preference": "Vegetarian", "spice_level": "High", "cuisine": "Italian", "ingredients": ["Flour", "Tomato", "Garlic", "Olive Oil", "Basil"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Grilled Salmon", "category": "Main Course", "base_price": 750, "dietary_preference": "Non-Vegetarian", "spice_level": "Low", "cuisine": "Continental", "ingredients": ["Fish", "Olive Oil", "Garlic"], "tags": ["Non-Vegetarian", "Keto"]},
+            {"name": "Beef Steak", "category": "Main Course", "base_price": 850, "dietary_preference": "Non-Vegetarian", "spice_level": "Medium", "cuisine": "Continental", "ingredients": ["Beef", "Olive Oil", "Garlic", "Butter"], "tags": ["Non-Vegetarian", "Keto"]},
+            {"name": "Mushroom Risotto", "category": "Main Course", "base_price": 480, "dietary_preference": "Vegetarian", "spice_level": "Low", "cuisine": "Italian", "ingredients": ["Rice", "Mushroom", "Cheese", "Butter"], "tags": ["Vegetarian"]},
             
             # Sides, Beverages, Desserts
-            {"name": "French Fries", "category": "Side", "base_price": 150, "is_veg": True, "spice_level": "None", "cuisine": "Fast Food", "ingredients": ["Potato", "Olive Oil"], "tags": ["Vegetarian", "Vegan"]},
-            {"name": "Tiramisu", "category": "Dessert", "base_price": 350, "is_veg": True, "spice_level": "None", "cuisine": "Italian", "ingredients": ["Cheese", "Coffee Beans", "Sugar", "Flour", "Eggs"], "tags": ["Eggetarian"]},
-            {"name": "Cheesecake", "category": "Dessert", "base_price": 320, "is_veg": True, "spice_level": "None", "cuisine": "Continental", "ingredients": ["Cheese", "Sugar", "Flour", "Butter"], "tags": ["Vegetarian"]},
-            {"name": "Espresso", "category": "Beverage", "base_price": 120, "is_veg": True, "spice_level": "None", "cuisine": "Italian", "ingredients": ["Coffee Beans"], "tags": ["Vegetarian", "Vegan", "Jain"]},
-            {"name": "Cappuccino", "category": "Beverage", "base_price": 180, "is_veg": True, "spice_level": "None", "cuisine": "Italian", "ingredients": ["Coffee Beans", "Milk", "Sugar"], "tags": ["Vegetarian"]}
+            {"name": "French Fries", "category": "Side", "base_price": 150, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Fast Food", "ingredients": ["Potato", "Olive Oil"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Tiramisu", "category": "Dessert", "base_price": 350, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Italian", "ingredients": ["Cheese", "Coffee Beans", "Sugar", "Flour", "Eggs"], "tags": ["Eggetarian"]},
+            {"name": "Cheesecake", "category": "Dessert", "base_price": 320, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Continental", "ingredients": ["Cheese", "Sugar", "Flour", "Butter"], "tags": ["Vegetarian"]},
+            {"name": "Espresso", "category": "Beverage", "base_price": 120, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Italian", "ingredients": ["Coffee Beans"], "tags": ["Vegetarian", "Vegan", "Jain"]},
+            {"name": "Cappuccino", "category": "Beverage", "base_price": 180, "dietary_preference": "Vegetarian", "spice_level": "None", "cuisine": "Italian", "ingredients": ["Coffee Beans", "Milk", "Sugar"], "tags": ["Vegetarian"]}
         ]
         
         # Massive Expansion: generate ~85 items per restaurant!

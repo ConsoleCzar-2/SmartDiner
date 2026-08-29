@@ -38,7 +38,7 @@ async def test_strict_vegan_allergy_constraint(db_session: AsyncSession):
     if result["status"] == "Optimal":
         assert result["total_cost"] <= 200.0
         for selected in result["items"]:
-            assert selected["item"].is_veg == True, "Non-vegetarian item chosen for vegetarian order"
+            assert selected["item"].dietary_preference == "Vegetarian", "Non-vegetarian item chosen for vegetarian order"
 
 @pytest.mark.asyncio
 async def test_high_people_count_low_budget(db_session: AsyncSession):

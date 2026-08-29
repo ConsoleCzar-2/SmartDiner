@@ -65,25 +65,25 @@ async def seed_data(db_session: AsyncSession):
     # Item 1: Available, Veg, Medium Spice, 200 price (Contains Dairy)
     item_1 = MenuItem(
         id="item-1", restaurant_id="rest-1", name="Paneer Tikka", category="Starter",
-        price=200.0, is_veg=True, spice_level="Medium", cuisine="North Indian",
+        price=200.0, dietary_preference="Vegetarian", spice_level="Medium", cuisine="North Indian",
         serving_size=2, is_available=True
     )
     # Item 2: Available, Non-Veg, High Spice, 400 price (Contains Peanuts)
     item_2 = MenuItem(
         id="item-2", restaurant_id="rest-1", name="Kung Pao Chicken", category="Main Course",
-        price=400.0, is_veg=False, spice_level="High", cuisine="Chinese",
+        price=400.0, dietary_preference="Non-Vegetarian", spice_level="High", cuisine="Chinese",
         serving_size=2, is_available=True
     )
     # Item 3: Unavailable
     item_3 = MenuItem(
         id="item-3", restaurant_id="rest-1", name="Out of Stock Item", category="Starter",
-        price=100.0, is_veg=True, spice_level="None", cuisine="North Indian",
+        price=100.0, dietary_preference="Vegetarian", spice_level="None", cuisine="North Indian",
         serving_size=1, is_available=False
     )
     # Item 4: Available, Veg, None Spice, 50 price (No Allergens)
     item_4 = MenuItem(
         id="item-4", restaurant_id="rest-1", name="Plain Naan", category="Bread",
-        price=50.0, is_veg=True, spice_level="None", cuisine="North Indian",
+        price=50.0, dietary_preference="Vegetarian", spice_level="None", cuisine="North Indian",
         serving_size=1, is_available=True
     )
     
