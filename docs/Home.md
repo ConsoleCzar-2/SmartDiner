@@ -4,7 +4,7 @@
 
 Unlike traditional LLM chatbots that hallucinate prices or forget fatal allergies, SmartDiner separates natural language understanding from deterministic business logic, achieving a 100% safety and compliance rate.
 
-## 📚 Table of Contents
+## Table of Contents
 
 This Wiki serves as the comprehensive documentation for the engineering, architecture, and product decisions behind SmartDiner.
 
@@ -26,7 +26,7 @@ This Wiki serves as the comprehensive documentation for the engineering, archite
 - [**Engineering Decision Log**](https://github.com/ConsoleCzar-2/SmartDiner/wiki/DECISION_LOG)
   A historical record of the critical technical choices made, alternative architectures rejected, and the rationale behind them.
 
-## 🚀 Quick Start
+## Quick Start
 
 If you're looking to run the project locally or view the source code, please refer to the main repository `README.md`:
 
