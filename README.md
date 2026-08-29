@@ -9,8 +9,6 @@
     <img src="https://img.shields.io/badge/PostgreSQL-16.0-336791.svg?logo=postgresql" alt="PostgreSQL" />
     <img src="https://img.shields.io/badge/PuLP-ILP_Solver-orange.svg" alt="PuLP" />
   </p>
-
-  <p><b>Team ConsoleCzar — Cimba.ai SDE Internship Take-Home</b></p>
   
   <p>
     <a href="https://github.com/ConsoleCzar-2/SmartDiner/wiki">Wiki & Documentation</a> · 
