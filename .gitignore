@@ -18,6 +18,7 @@ out/
 .env.*.local
 .env.production
 .env.development
+gcp-credentials.json
 
 # IDE/Editor
 .vscode/
@@ -66,3 +67,8 @@ __pycache__/
 *.md
 !README.md
 !docs/*.md
+
+#Dev Testing
+backend/export_local_db.py
+backend/import_to_render.py
+backend/seed_data_export.json

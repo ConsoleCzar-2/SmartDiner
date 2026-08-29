@@ -147,6 +147,7 @@ async def seed():
             {"name": "Chicken Tikka", "category": "Starter", "base_price": 320, "is_veg": False, "spice_level": "High", "cuisine": "North Indian", "ingredients": ["Chicken", "Onion", "Mustard Seeds"], "tags": ["Non-Vegetarian"]},
             {"name": "Mushroom Tikka", "category": "Starter", "base_price": 260, "is_veg": True, "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Mushroom", "Onion", "Tomato"], "tags": ["Vegetarian", "Vegan"]},
             {"name": "Gobi Manchurian", "category": "Starter", "base_price": 220, "is_veg": True, "spice_level": "Medium", "cuisine": "Indo-Chinese", "ingredients": ["Flour", "Soy Sauce", "Garlic"], "tags": ["Vegetarian", "Vegan"]},
+            {"name": "Fish Tikka", "category": "Starter", "base_price": 350, "is_veg": False, "spice_level": "High", "cuisine": "North Indian", "ingredients": ["Fish", "Mustard Seeds", "Garlic"], "tags": ["Non-Vegetarian"]},
             
             # Mains
             {"name": "Dal Makhani", "category": "Main Course", "base_price": 250, "is_veg": True, "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Lentils", "Butter", "Tomato"], "tags": ["Vegetarian"]},
@@ -157,6 +158,7 @@ async def seed():
             {"name": "Jain Paneer Masala", "category": "Main Course", "base_price": 310, "is_veg": True, "spice_level": "Low", "cuisine": "North Indian", "ingredients": ["Paneer", "Tomato", "Cashews"], "tags": ["Vegetarian", "Jain"]},
             {"name": "Masala Dosa", "category": "Main Course", "base_price": 180, "is_veg": True, "spice_level": "Medium", "cuisine": "South Indian", "ingredients": ["Rice", "Lentils", "Potato", "Mustard Seeds"], "tags": ["Vegetarian", "Vegan"]},
             {"name": "Idli Sambhar", "category": "Main Course", "base_price": 140, "is_veg": True, "spice_level": "Low", "cuisine": "South Indian", "ingredients": ["Rice", "Lentils", "Curry Leaves"], "tags": ["Vegetarian", "Vegan", "Jain"]},
+            {"name": "Fish Curry", "category": "Main Course", "base_price": 400, "is_veg": False, "spice_level": "Medium", "cuisine": "North Indian", "ingredients": ["Fish", "Tomato", "Onion", "Mustard Seeds"], "tags": ["Non-Vegetarian"]},
             
             # Breads
             {"name": "Butter Naan", "category": "Bread", "base_price": 60, "is_veg": True, "spice_level": "None", "cuisine": "North Indian", "ingredients": ["Flour", "Butter"], "tags": ["Vegetarian"]},

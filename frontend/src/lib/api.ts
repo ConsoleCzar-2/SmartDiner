@@ -9,14 +9,8 @@ function resolveApiBaseUrl(): string {
         return configuredUrl.replace(/\/$/, "");
     }
 
-    // Local default for development only.
-    if (process.env.NODE_ENV !== "production") {
-        return "http://127.0.0.1:8000";
-    }
-
-    throw new Error(
-        "Missing NEXT_PUBLIC_API_URL (or NEXT_PUBLIC_API_BASE_URL) in production environment.",
-    );
+    // Default fallback so Vercel builds do not crash during SSG
+    return "http://127.0.0.1:8000";
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
@@ -165,7 +159,7 @@ export async function fetchActiveCart(restaurantId: string): Promise<any> {
     return response.json();
 }
 
-export async function addToCart(payload: { restaurant_id: string, menu_item_id: string, quantity: int }): Promise<any> {
+export async function addToCart(payload: { restaurant_id: string, menu_item_id: string, quantity: number }): Promise<any> {
     const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
     const response = await fetch(`${API_BASE_URL}/api/cart/add`, {
         method: "POST",

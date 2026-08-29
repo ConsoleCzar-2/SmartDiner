@@ -62,6 +62,7 @@ pip install -r requirements.txt
 # Start the server (runs on http://localhost:8000)
 uvicorn app.main:app --reload
 ```
+*(The interactive Swagger UI for the API will be automatically generated and available at http://localhost:8000/docs)*
 
 ### 2. Frontend Setup
 ```bash
