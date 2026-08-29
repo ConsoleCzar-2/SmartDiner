@@ -14,6 +14,9 @@ This Wiki serves as the comprehensive documentation for the engineering, archite
 - [**Architecture & Pipeline Design**](https://github.com/ConsoleCzar-2/SmartDiner/wiki/ARCHITECTURE)
   A deep dive into the 4-step governed pipeline (LLM → SQL → ILP Solver → LLM) and the system topology.
 
+- [**UML Diagrams (Class & Sequence)**](https://github.com/ConsoleCzar-2/SmartDiner/wiki/UML)
+  Object-oriented structural maps of the backend Python models and the execution sequence diagram of the chat pipeline.
+
 - [**Database & ERD**](https://github.com/ConsoleCzar-2/SmartDiner/wiki/DATABASE)
   Explanation of our strict normalized PostgreSQL schema, UUIDv7 strategy, and how allergen safety is enforced via ingredients.
 
