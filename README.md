@@ -1,35 +1,26 @@
 # SmartDiner
 
-AI-powered restaurant assistant that guarantees allergen safety, budget compliance, and dietary adherence through a governed architecture.
+**An AI-powered restaurant assistant that mathematically guarantees allergen safety, budget compliance, and dietary adherence through a strict governed architecture.**
 
-## Current Project Status
+SmartDiner acts as a fully autonomous concierge for restaurants. Unlike traditional LLM wrappers that hallucinate prices or forget fatal allergies, SmartDiner strictly separates natural language understanding from deterministic business logic, achieving a 100% safety and compliance rate. 
 
-**Milestone Reached:** Extended Features (Step 15 of 16 Completed)
-- **Menu Management & Dietary Tags:** Fully functional Admin Dashboard for CRUD on menu items with GCS image upload, inferred allergens rules, and granular dietary preferences (Vegetarian, Vegan, Non-Vegetarian).
-- **Compliance Logging:** Fully implemented asynchronous WORM (Write Once, Read Many) audit logging to Google Cloud Storage to preserve every conversation and its LLM/Solver artifacts immutably.
-- **Backend Pipeline:** End-to-end integration of LLM Constraint Extraction → SQL DB Filtering → ILP PuLP Solver → LLM Explanation Generation is operational.
-- **Frontend:** Next.js App Router frontend integrated with real-time API routes, featuring a dedicated Visual Menu browser (with localized ₹ currency formatting), dynamic AI chat interface, and Admin Dashboard with structured Audit Log viewers.
-- **Performance:** Implemented in-memory TTL caching on heavy menu endpoints to eliminate N+1 DB queries and reduce latency down to milliseconds.
-- **LLM Optimization:** Upgraded schema rules (nullable fields) and migrated to **Gemini 3.5 Flash Lite** for lightning-fast, high-volume constraint extraction and explanations.
-- **Math Solver Polish:** Hardened the Integer Linear Programming (ILP) solver with `MaxServingsConstraint`, `NonVegServingsConstraint`, and explicit `vegan_count` checks to mathematically guarantee dietary diversity and safety.
-- **Deployed:** Backend on **Render** (Docker + managed PostgreSQL), Frontend on **Vercel** (edge network).
-- **Up Next:** Full GCP/Terraform IaC migration planned as future work (Step 16).
+## Key Features
 
-### Current Deployment Notes (2026-08-26)
-- Backend: `https://smartdiner-backend.onrender.com`; frontend builds must set `NEXT_PUBLIC_API_URL` to this URL. `NEXT_PUBLIC_API_BASE_URL` remains supported as a legacy alias.
-- Backend CORS accepts JSON-array or comma-separated `CORS_ORIGINS` values and supports Vercel previews with `CORS_ORIGIN_REGEX=^https://.*\\.vercel\\.app$`.
-- Password hashing uses `passlib[bcrypt]` with `bcrypt==4.0.1` for compatibility.
-- The production database is separate from local Docker PostgreSQL and must be seeded independently. The backend image includes `seed/`.
+- **Governed AI Recommendations:** The LLM parses natural language ("5 people, 2 veg, no dairy, under ₹3000") and a deterministic integer linear programming (ILP) solver constructs the optimal menu.
+- **Zero-Hallucination Allergen Safety:** Allergens are tracked at the ingredient level and filtered via PostgreSQL. The AI cannot recommend unsafe items.
+- **Visual Menu Browser:** A premium glassmorphic Next.js UI allowing customers to browse dishes, check dietary markers (Vegetarian/Vegan/Non-Vegetarian), and easily build a cart.
+- **WORM Compliance Logging:** Every AI decision is cryptographically logged to Google Cloud Storage (GCS) using Object Lock (Write Once, Read Many) for unalterable auditing.
+- **Admin Dashboard:** Restaurant managers can perform CRUD operations on their menu, manage images directly via GCS, and review live business metrics and AI conversation logs.
 
 ## Comprehensive Documentation
 
 For a deep dive into the system's design and engineering rationale, please refer to the following documents:
-- [Product Requirements Document (PRD)](docs/PRD.md)
-- [Architecture & Pipeline Design](docs/ARCHITECTURE.md)
-- [Database & ERD](docs/DATABASE.md)
-- [REST API Reference](docs/API.md)
-- [Prompt Engineering & LLM Integration](docs/PROMPTS.md)
-- [Engineering Decision Log](docs/DECISION_LOG.md)
+- [Product Requirements Document (PRD)](https://github.com/ConsoleCzar-2/SmartDiner/wiki/PRD)
+- [Architecture & Pipeline Design](https://github.com/ConsoleCzar-2/SmartDiner/wiki/ARCHITECTURE)
+- [Database & ERD](https://github.com/ConsoleCzar-2/SmartDiner/wiki/DATABASE)
+- [REST API Reference](https://github.com/ConsoleCzar-2/SmartDiner/wiki/API)
+- [Prompt Engineering & LLM Integration](https://github.com/ConsoleCzar-2/SmartDiner/wiki/PROMPTS)
+- [Engineering Decision Log](https://github.com/ConsoleCzar-2/SmartDiner/wiki/DECISION_LOG)
 
 ---
 
@@ -431,22 +422,14 @@ npm run dev
 ```
 *The Next.js UI will be available at [http://localhost:3000](http://localhost:3000).*
 
-### Production Seeding and Troubleshooting
+### Database Seeding
 
-Run local seeding from `backend` with:
+To populate the database with sample restaurants, menus, and users, run the following command from the `backend` directory:
 
-```powershell
+```bash
 cd backend
 python -m seed.seed_data
 ```
 
-Run production seeding in the Render Shell after redeploying the backend image:
-
-```bash
-cd /app 
-# Basically, start from the backend\ folder
-python -m seed.seed_data
-```
-
-The valid module is `seed.seed_data`; `seed.data` does not exist, and the command fails from the repository root or `backend/app` because `seed` is not on the module path. If `/api/restaurants` returns `[]`, verify that Render's `DATABASE_URL` points to the database you seeded. If preflight returns `400`, update CORS variables and redeploy. If preflight returns `200` but registration returns `500` with a bcrypt traceback, redeploy after installing `bcrypt==4.0.1`.
+For production deployments (e.g., on Render), you can run the same command via your cloud provider's shell (ensuring you are in the directory containing the `seed` module).
 

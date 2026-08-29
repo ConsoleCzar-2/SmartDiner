@@ -62,6 +62,7 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
-# Markdown files (except README)
+# Markdown files (except README and docs)
 *.md
 !README.md
+!docs/*.md
