@@ -3,14 +3,14 @@ import pulp
 from app.schemas.constraints import ExtractedConstraints
 from app.models.menu_item import MenuItem
 
-def optimize_menu(veg_items: list[MenuItem], nonveg_items: list[MenuItem], constraints: ExtractedConstraints) -> dict:
+def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem], nonveg_items: list[MenuItem], constraints: ExtractedConstraints) -> dict:
     """
     Uses Integer Linear Programming (ILP) to find the optimal combination of menu items.
     Maximizes rating & serving efficiency while strictly obeying budget and dietary constraints.
     """
     prob = pulp.LpProblem("RestaurantMenuOptimization", pulp.LpMaximize)
     
-    all_items = veg_items + nonveg_items
+    all_items = veg_items + vegan_items + nonveg_items
     if not all_items:
         return {
             "status": "Infeasible", 
@@ -51,17 +51,30 @@ def optimize_menu(veg_items: list[MenuItem], nonveg_items: list[MenuItem], const
     # C. Vegetarian Servings (Ensure vegetarians have enough food specifically for them)
     veg_people = constraints.vegetarian_count or 0
     if veg_people > 0:
-        if not veg_items:
+        if not (veg_items + vegan_items):
             return {
                 "status": "Infeasible",
-                "reason": "No vegetarian items left after filtering, but vegetarians are present.",
+                "reason": "No vegetarian/vegan items left after filtering, but vegetarians are present.",
                 "items": [],
                 "total_cost": 0.0,
                 "total_servings": 0
             }
-        prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in veg_items]) >= veg_people, "VegServingsConstraint"
+        prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in (veg_items + vegan_items)]) >= veg_people, "VegServingsConstraint"
 
-    # D. Non-Vegetarian Servings (Ensure non-vegetarians get some non-veg food)
+    # D. Vegan Servings
+    vegan_people = constraints.vegan_count or 0
+    if vegan_people > 0:
+        if not vegan_items:
+            return {
+                "status": "Infeasible",
+                "reason": "No vegan items left after filtering, but vegans are present.",
+                "items": [],
+                "total_cost": 0.0,
+                "total_servings": 0
+            }
+        prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in vegan_items]) >= vegan_people, "VeganServingsConstraint"
+
+    # E. Non-Vegetarian Servings (Ensure non-vegetarians get some non-veg food)
     nonveg_people = constraints.non_vegetarian_count or 0
     if nonveg_people > 0 and nonveg_items:
         prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in nonveg_items]) >= nonveg_people, "NonVegServingsConstraint"
@@ -76,13 +89,25 @@ def optimize_menu(veg_items: list[MenuItem], nonveg_items: list[MenuItem], const
 
     # --- 6. Parse Output ---
     status_str = pulp.LpStatus[prob.status]
+    rationale = {
+        "objective": "Maximize SUM(Quantity * Rating * Serving Size)",
+        "budget_limit": float(constraints.max_budget) if constraints.max_budget else "None",
+        "min_total_servings": total_people,
+        "max_servings_cap": total_people * 4,
+        "min_veg_servings": veg_people if veg_people > 0 else 0,
+        "min_vegan_servings": vegan_people if vegan_people > 0 else 0,
+        "min_nonveg_servings": nonveg_people if nonveg_people > 0 else 0,
+        "max_qty_per_dish": max_qty_per_dish
+    }
+
     if status_str != "Optimal":
         return {
             "status": status_str,
             "reason": "Could not find a mathematically possible combination. The budget might be too tight, or you requested too much food for too little money.",
             "items": [],
             "total_cost": 0.0,
-            "total_servings": 0
+            "total_servings": 0,
+            "decision_rationale": rationale
         }
 
     selected_items = []
@@ -110,5 +135,6 @@ def optimize_menu(veg_items: list[MenuItem], nonveg_items: list[MenuItem], const
         "reason": "Successfully generated an optimal menu within all constraints.",
         "items": selected_items,
         "total_cost": round(total_cost, 2),
-        "total_servings": total_servings
+        "total_servings": total_servings,
+        "decision_rationale": rationale
     }

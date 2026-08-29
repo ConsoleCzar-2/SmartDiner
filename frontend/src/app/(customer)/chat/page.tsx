@@ -153,7 +153,7 @@ function ChatContent() {
                     error={error}
                     onSend={submit}
                 />
-                <CartPanel recommendation={recommendation} />
+                <CartPanel recommendation={recommendation} conversationId={conversationId} />
             </div>
         </div>
     );

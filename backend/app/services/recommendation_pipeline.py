@@ -57,21 +57,25 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: 
     # --- Step 2: SQL Deterministic Filter ---
     filtered = await filter_menu_items(db, str(request.restaurant_id), constraints)
     veg_items = filtered["veg"]
+    vegan_items = filtered["vegan"]
     nonveg_items = filtered["nonveg"]
 
     # --- Step 3: ILP Optimization ---
-    solver_output = optimize_menu(veg_items, nonveg_items, constraints)
+    solver_output = optimize_menu(veg_items, vegan_items, nonveg_items, constraints)
 
     # --- Step 4: Build structured recommendation result ---
     recommended_items = []
     veg_servings = 0
+    vegan_servings = 0
     nonveg_servings = 0
 
     for entry in solver_output.get("items", []):
         item = entry["item"]
         item_servings = entry["quantity"] * item.serving_size
-        if item.is_veg:
+        if item.dietary_preference == 'Vegetarian':
             veg_servings += item_servings
+        elif item.dietary_preference == 'Vegan':
+            vegan_servings += item_servings
         else:
             nonveg_servings += item_servings
 
@@ -82,10 +86,11 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: 
             quantity=entry["quantity"],
             unit_price=float(item.price),
             subtotal=entry["subtotal"],
-            is_veg=item.is_veg,
+            dietary_preference=item.dietary_preference,
             spice_level=item.spice_level,
             serving_size=item.serving_size,
             total_servings=item_servings,
+            image_url=item.image_url,
         ))
 
     budget_remaining = None
@@ -100,7 +105,9 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: 
         budget_remaining=budget_remaining,
         total_servings=solver_output["total_servings"],
         veg_servings=veg_servings,
+        vegan_servings=vegan_servings,
         nonveg_servings=nonveg_servings,
+        decision_rationale=solver_output.get("decision_rationale", None)
     )
 
     # --- Step 5: Grounded LLM Explanation ---

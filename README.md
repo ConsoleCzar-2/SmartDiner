@@ -4,15 +4,16 @@ AI-powered restaurant assistant that guarantees allergen safety, budget complian
 
 ## Current Project Status
 
-**Milestone Reached:** Compliance & Audit Logging (Step 14 of 16 Completed)
+**Milestone Reached:** Extended Features (Step 15 of 16 Completed)
+- **Menu Management & Dietary Tags:** Fully functional Admin Dashboard for CRUD on menu items with GCS image upload, inferred allergens rules, and granular dietary preferences (Vegetarian, Vegan, Non-Vegetarian).
 - **Compliance Logging:** Fully implemented asynchronous WORM (Write Once, Read Many) audit logging to Google Cloud Storage to preserve every conversation and its LLM/Solver artifacts immutably.
 - **Backend Pipeline:** End-to-end integration of LLM Constraint Extraction → SQL DB Filtering → ILP PuLP Solver → LLM Explanation Generation is operational.
 - **Frontend:** Next.js App Router frontend integrated with real-time API routes, featuring a dedicated Visual Menu browser (with localized ₹ currency formatting), dynamic AI chat interface, and Admin Dashboard with structured Audit Log viewers.
 - **Performance:** Implemented in-memory TTL caching on heavy menu endpoints to eliminate N+1 DB queries and reduce latency down to milliseconds.
 - **LLM Optimization:** Upgraded schema rules (nullable fields) and migrated to **Gemini 3.5 Flash Lite** for lightning-fast, high-volume constraint extraction and explanations.
-- **Math Solver Polish:** Hardened the Integer Linear Programming (ILP) solver with `MaxServingsConstraint` (for infinite budgets) and `NonVegServingsConstraint` (to mathematically guarantee dietary diversity).
-- **Deployed:** Backend on **Render** (Docker + managed PostgreSQL), Frontend on **Vercel** (edge network). Full GCP/Terraform IaC migration planned as future work.
-- **Up Next:** Extended Features (Cart, RBAC, Menu Management) (Step 15).
+- **Math Solver Polish:** Hardened the Integer Linear Programming (ILP) solver with `MaxServingsConstraint`, `NonVegServingsConstraint`, and explicit `vegan_count` checks to mathematically guarantee dietary diversity and safety.
+- **Deployed:** Backend on **Render** (Docker + managed PostgreSQL), Frontend on **Vercel** (edge network).
+- **Up Next:** Full GCP/Terraform IaC migration planned as future work (Step 16).
 
 ### Current Deployment Notes (2026-08-26)
 - Backend: `https://smartdiner-backend.onrender.com`; frontend builds must set `NEXT_PUBLIC_API_URL` to this URL. `NEXT_PUBLIC_API_BASE_URL` remains supported as a legacy alias.
@@ -78,6 +79,8 @@ flowchart TD
     I --> MII
     MI --> MIT["menu_item_tags"]
     DT["dietary_tags"] --> MIT
+    MI --> MIA["menu_item_allergens"]
+    A --> MIA
     O --> OI["order_items"]
     MI --> OI
     
@@ -117,7 +120,7 @@ erDiagram
         text description
         varchar category
         decimal price
-        boolean is_veg
+        varchar dietary_preference
         varchar spice_level
         varchar cuisine
         int serving_size
@@ -155,6 +158,11 @@ erDiagram
     MENU_ITEM_TAGS {
         uuid menu_item_id FK
         int tag_id FK
+    }
+    
+    MENU_ITEM_ALLERGENS {
+        uuid menu_item_id FK
+        int allergen_id FK
     }
     
     ADMIN_USERS {
@@ -261,7 +269,7 @@ Individual dishes scoped to a specific restaurant.
 - `description` (Text, Nullable)
 - `category` (String 50, NOT NULL) — `CHECK IN ('Starter', 'Main Course', 'Bread', 'Rice', 'Beverage', 'Dessert', 'Side', 'Combo', 'Fast Food')`
 - `price` (Numeric(10,2), NOT NULL) — `CHECK (price >= 0)`. Uses Numeric instead of Float to prevent rounding errors.
-- `is_veg` (Boolean, default: False)
+- `dietary_preference` (String 30, NOT NULL) — `CHECK IN ('Vegetarian', 'Vegan', 'Non-Vegetarian')`
 - `spice_level` (String 20, NOT NULL) — `CHECK IN ('None', 'Low', 'Medium', 'High', 'Extreme')`
 - `cuisine` (String 50, NOT NULL) — Constrained to standard types (e.g. 'North Indian', 'Fast Food', 'Beverages').
 - `serving_size` (Integer, default: 1, NOT NULL) — `CHECK (serving_size > 0)`
@@ -270,8 +278,8 @@ Individual dishes scoped to a specific restaurant.
 - `image_url` (Text, Nullable)
 - `created_at` (TIMESTAMPTZ)
 - **Indexes:** 
-  - `idx_menu_filter`: Composite index on `(restaurant_id, is_available, is_veg, spice_level, price)`. This is the critical index used by the deterministic filter engine.
-- **Relationships:** `restaurant`, `ingredients`, `dietary_tags`, `order_items`
+  - `idx_menu_filter`: Composite index on `(restaurant_id, is_available, dietary_preference, spice_level, price)`. This is the critical index used by the deterministic filter engine.
+- **Relationships:** `restaurant`, `ingredients`, `dietary_tags`, `menu_item_allergens`, `order_items`
 
 ### 5. `ingredients`, `allergens` & Join Tables
 Master lookup tables that define what a dish is made of, and which allergens those ingredients contain. This enforces a single source of truth for allergens.
@@ -373,7 +381,7 @@ Implemented routes include `POST /api/chat`, `GET /api/chat/active`, restaurant/
         "quantity": 2,
         "unit_price": 250.0,
         "subtotal": 500.0,
-        "is_veg": true,
+        "dietary_preference": "Vegetarian",
         "spice_level": "Medium",
         "serving_size": 2,
         "total_servings": 4

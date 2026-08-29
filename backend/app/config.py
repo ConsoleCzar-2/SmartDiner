@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     # GCP Infrastructure
     gcp_project_id: str = Field(default="", description="Google Cloud Project ID")
     gcs_audit_bucket_name: str = Field(default="", description="GCS WORM bucket name for audit logs")
+    gcs_image_bucket_name: str = Field(default="", description="GCS bucket for menu/restaurant images")
     
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),

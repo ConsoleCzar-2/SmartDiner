@@ -44,7 +44,8 @@ async def chat(
         solver_output={
             "status": response.recommendation.status,
             "total_cost": response.recommendation.computed_total,
-            "total_servings": response.recommendation.total_servings
+            "total_servings": response.recommendation.total_servings,
+            "decision_rationale": response.recommendation.decision_rationale
         },
         llm_explanation=response.explanation,
         recommended_cart=[item.model_dump() for item in response.recommendation.items]
@@ -74,7 +75,7 @@ async def get_active_conversation(
     
     # We could implement logic to check if conv is older than a day,
     # or if the order is already placed. For now, if one exists, return it.
-    if not conv:
+    if not conv or conv.status != 'ACTIVE':
         return {"conversation_id": None, "history": []}
         
     return {

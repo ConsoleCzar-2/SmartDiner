@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { fetchRestaurant, fetchRestaurantMenu } from "@/lib/api";
+import { fetchRestaurant, fetchRestaurantMenu, addToCart, fetchActiveCart, patchCart } from "@/lib/api";
 import { Navbar } from "@/components/navbar";
-import { Loader2, Flame, Leaf, UtensilsCrossed, Utensils, AlertTriangle } from "lucide-react";
+import { Loader2, Flame, Leaf, UtensilsCrossed, Utensils, AlertTriangle, Plus, Minus, Sprout, Drumstick } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function RestaurantMenuPage({
     params,
@@ -17,20 +18,92 @@ export default function RestaurantMenuPage({
     const router = useRouter();
     const [restaurant, setRestaurant] = useState<any>(null);
     const [menuItems, setMenuItems] = useState<any[]>([]);
+    const [cartItems, setCartItems] = useState<any[]>([]);
+    const [conversationId, setConversationId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        Promise.all([fetchRestaurant(id), fetchRestaurantMenu(id)])
-            .then(([resData, menuData]) => {
+        const loadInitialData = async () => {
+            try {
+                const [resData, menuData, cartData] = await Promise.all([
+                    fetchRestaurant(id),
+                    fetchRestaurantMenu(id),
+                    fetchActiveCart(id).catch(() => null)
+                ]);
                 setRestaurant(resData);
                 setMenuItems(menuData);
-                setLoading(false);
-            })
-            .catch((err) => {
+                if (cartData) {
+                    setConversationId(cartData.conversation_id);
+                    setCartItems(cartData.cart || []);
+                }
+            } catch (err) {
                 console.error(err);
+            } finally {
                 setLoading(false);
-            });
+            }
+        };
+        
+        loadInitialData();
+
+        const handleCartUpdate = () => {
+            fetchActiveCart(id).then(cartData => {
+                if (cartData) {
+                    setConversationId(cartData.conversation_id);
+                    setCartItems(cartData.cart || []);
+                }
+            }).catch(console.error);
+        };
+
+        window.addEventListener('cartUpdated', handleCartUpdate);
+        return () => window.removeEventListener('cartUpdated', handleCartUpdate);
     }, [id]);
+
+    const getCartQuantity = (itemId: string) => {
+        const item = cartItems.find((ci: any) => ci.menu_item_id === itemId || ci.id === itemId);
+        return item ? item.quantity : 0;
+    };
+
+    const handleUpdateQuantity = async (itemId: string, currentQuantity: number, delta: number) => {
+        const newQuantity = currentQuantity + delta;
+        
+        // If adding a new item, use addToCart which fetches item details from DB
+        if (currentQuantity === 0 && delta > 0) {
+            try {
+                const data = await addToCart({ restaurant_id: id, menu_item_id: itemId, quantity: 1 });
+                setConversationId(data.conversation_id);
+                setCartItems(data.cart);
+                toast.success("Added to cart");
+            } catch(e: any) {
+                toast.error(e.message);
+            }
+            return;
+        }
+
+        if (!conversationId) return;
+
+        // Optimistic update for existing items
+        setCartItems(current => {
+            const existing = current.find(ci => ci.menu_item_id === itemId || ci.id === itemId);
+            if (existing) {
+                return current.map(item => 
+                    (item.menu_item_id === itemId || item.id === itemId) 
+                        ? { ...item, quantity: newQuantity } 
+                        : item
+                ).filter(item => item.quantity > 0);
+            }
+            return current;
+        });
+
+        try {
+            const data = await patchCart(conversationId, [{ id: itemId, quantity: newQuantity }]);
+            setCartItems(data.cart);
+        } catch(e: any) {
+            toast.error("Failed to update cart");
+            fetchActiveCart(id).then(d => {
+                if(d) setCartItems(d.cart || []);
+            });
+        }
+    };
 
     if (loading) {
         return (
@@ -120,12 +193,12 @@ export default function RestaurantMenuPage({
                                                 src={item.image_url}
                                                 alt={item.name}
                                                 fill
-                                                className="object-cover"
+                                                className={`object-cover ${!item.is_available ? 'grayscale opacity-40' : ''}`}
                                             />
                                         </div>
                                     ) : (
                                         <div className="flex h-48 w-full items-center justify-center bg-white/[0.03]">
-                                            <Utensils className="h-10 w-10 text-white/20" />
+                                            <Utensils className={`h-10 w-10 ${!item.is_available ? 'text-white/10' : 'text-white/20'}`} />
                                         </div>
                                     )}
                                     <div className="flex flex-1 flex-col p-5">
@@ -141,9 +214,19 @@ export default function RestaurantMenuPage({
                                             {item.description}
                                         </p>
                                         <div className="mt-4 flex flex-wrap gap-2">
-                                            {item.is_veg && (
+                                            {item.dietary_preference === "Vegetarian" && (
                                                 <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
                                                     <Leaf className="h-3 w-3" /> Veg
+                                                </span>
+                                            )}
+                                            {item.dietary_preference === "Vegan" && (
+                                                <span className="flex items-center gap-1 rounded-full bg-green-500/10 px-2.5 py-1 text-[10px] font-semibold text-green-400 border border-green-500/20">
+                                                    <Sprout className="h-3 w-3" /> Vegan
+                                                </span>
+                                            )}
+                                            {item.dietary_preference === "Non-Vegetarian" && (
+                                                <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-400 border border-red-500/20">
+                                                    <Drumstick className="h-3 w-3" /> Non-Veg
                                                 </span>
                                             )}
                                             {item.spice_level !== "None" && (
@@ -155,6 +238,41 @@ export default function RestaurantMenuPage({
                                                 <span className="flex items-center gap-1 rounded-full bg-orange-500/10 px-2.5 py-1 text-[10px] font-semibold text-orange-400 border border-orange-500/20">
                                                     <AlertTriangle className="h-3 w-3" /> {item.allergens.join(", ")}
                                                 </span>
+                                            )}
+                                        </div>
+                                        <div className="mt-5">
+                                            {!item.is_available ? (
+                                                <div className="w-full rounded-xl border border-red-500/20 bg-red-500/10 py-2 text-center text-sm font-semibold text-red-400">
+                                                    Out of Stock
+                                                </div>
+                                            ) : getCartQuantity(item.id) > 0 ? (
+                                                <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-1">
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon"
+                                                        onClick={() => handleUpdateQuantity(item.id, getCartQuantity(item.id), -1)}
+                                                        className="h-8 w-8 hover:bg-white/10 hover:text-[#f6a61d]"
+                                                    >
+                                                        <Minus className="h-4 w-4" />
+                                                    </Button>
+                                                    <span className="text-sm font-bold w-8 text-center">{getCartQuantity(item.id)}</span>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon"
+                                                        onClick={() => handleUpdateQuantity(item.id, getCartQuantity(item.id), 1)}
+                                                        className="h-8 w-8 hover:bg-white/10 hover:text-[#f6a61d]"
+                                                    >
+                                                        <Plus className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <Button 
+                                                    variant="outline"
+                                                    onClick={() => handleUpdateQuantity(item.id, 0, 1)}
+                                                    className="w-full rounded-xl border-white/10 bg-white/5 hover:bg-white/10 hover:text-white"
+                                                >
+                                                    Add to Cart
+                                                </Button>
                                             )}
                                         </div>
                                     </div>

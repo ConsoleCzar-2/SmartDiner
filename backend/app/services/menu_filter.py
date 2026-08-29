@@ -61,11 +61,13 @@ async def filter_menu_items(
     all_items = result.scalars().all()
     
     # Partition the results for the ILP solver
-    veg_items = [item for item in all_items if item.is_veg]
-    nonveg_items = [item for item in all_items if not item.is_veg]
+    veg_items = [item for item in all_items if item.dietary_preference == 'Vegetarian']
+    vegan_items = [item for item in all_items if item.dietary_preference == 'Vegan']
+    nonveg_items = [item for item in all_items if item.dietary_preference == 'Non-Vegetarian']
     
     return {
         "veg": veg_items,
+        "vegan": vegan_items,
         "nonveg": nonveg_items,
         "all": all_items
     }

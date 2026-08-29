@@ -4,6 +4,7 @@ from typing import List, Optional, Literal
 class ExtractedConstraints(BaseModel):
     people_count: int = Field(default=1, description="Total number of diners. Must be at least 1.")
     vegetarian_count: int = Field(default=0, description="Count of vegetarian diners.")
+    vegan_count: int = Field(default=0, description="Count of vegan diners.")
     non_vegetarian_count: Optional[int] = Field(default=None, description="Count of non-vegetarian diners.")
     max_budget: Optional[float] = Field(default=None, description="Total absolute budget in INR.")
     max_spice_level: Literal["None", "Low", "Medium", "High", "Extreme", "Any"] = Field(default="Any", description="Maximum tolerated spice level.")

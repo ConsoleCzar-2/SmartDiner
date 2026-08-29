@@ -152,3 +152,116 @@ export async function fetchAdminAuditLogs(token: string, conversationId: string)
     }
     return response.json();
 }
+
+// --- Cart APIs ---
+
+export async function fetchActiveCart(restaurantId: string): Promise<any> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
+    if (!token) return { conversation_id: null, cart: [] };
+    const response = await fetch(`${API_BASE_URL}/api/cart?restaurant_id=${restaurantId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error("Failed to fetch cart");
+    return response.json();
+}
+
+export async function addToCart(payload: { restaurant_id: string, menu_item_id: string, quantity: int }): Promise<any> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
+    const response = await fetch(`${API_BASE_URL}/api/cart/add`, {
+        method: "POST",
+        headers: { 
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error("Failed to add to cart");
+    return response.json();
+}
+
+export async function patchCart(conversationId: string, items: { id: string, quantity: number }[]): Promise<any> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
+    const response = await fetch(`${API_BASE_URL}/api/cart/${conversationId}`, {
+        method: "PATCH",
+        headers: { 
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ items }),
+    });
+    if (!response.ok) throw new Error("Failed to patch cart");
+    return response.json();
+}
+
+// --- Order APIs ---
+
+export async function checkoutOrder(conversationId: string): Promise<any> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
+    const response = await fetch(`${API_BASE_URL}/api/orders/checkout`, {
+        method: "POST",
+        headers: { 
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ conversation_id: conversationId }),
+    });
+    if (!response.ok) {
+        const err = await response.text().catch(() => "");
+        throw new Error(err || "Failed to checkout");
+    }
+    return response.json();
+}
+
+export async function fetchOrderHistory(): Promise<any> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
+    if (!token) return { orders: [], total_count: 0 };
+    const response = await fetch(`${API_BASE_URL}/api/orders/history`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error("Failed to fetch order history");
+    return response.json();
+}
+
+// --- Admin Menu APIs ---
+
+export async function adminCreateMenuItem(token: string, restaurantId: string, formData: FormData): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/restaurants/${restaurantId}/menu`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData, // FormData does not need Content-Type header, fetch sets it automatically with boundary
+    });
+    if (!response.ok) throw new Error("Failed to create menu item");
+    return response.json();
+}
+
+export async function adminUpdateMenuItem(token: string, restaurantId: string, itemId: string, formData: FormData): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/restaurants/${restaurantId}/menu/${itemId}`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData,
+    });
+    if (!response.ok) throw new Error("Failed to update menu item");
+    return response.json();
+}
+
+export async function adminDeleteMenuItem(token: string, restaurantId: string, itemId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/restaurants/${restaurantId}/menu/${itemId}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) {
+        const d = await response.text();
+        throw new Error(d);
+    }
+}
+
+export async function adminFetchAllergens(token: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/allergens`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) {
+        const d = await response.text();
+        throw new Error(d);
+    }
+    return response.json();
+}

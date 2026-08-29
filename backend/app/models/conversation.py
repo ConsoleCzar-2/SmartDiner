@@ -1,4 +1,4 @@
-from sqlalchemy import String, DateTime, Index, ForeignKey
+from sqlalchemy import String, DateTime, Index, ForeignKey, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
@@ -14,12 +14,17 @@ class Conversation(Base):
     messages: Mapped[list] = mapped_column(JSONB, default=list)
     current_constraints: Mapped[dict] = mapped_column(JSONB, default=dict)
     current_cart: Mapped[list] = mapped_column(JSONB, default=list)
+    status: Mapped[str] = mapped_column(String(20), default='ACTIVE', nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
     # Constraints and Indexes
     __table_args__ = (
         Index("idx_conversations_user", "user_id", "updated_at"),
+        CheckConstraint(
+            "status IN ('ACTIVE', 'CHECKED_OUT', 'ABANDONED')",
+            name="ck_conversation_valid_status"
+        ),
     )
 
     # Relationships

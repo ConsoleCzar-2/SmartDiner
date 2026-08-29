@@ -10,3 +10,9 @@ class Allergen(Base):
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
 
     ingredients = relationship("Ingredient", secondary="ingredient_allergens", backref="allergens")
+
+class MenuItemAllergen(Base):
+    __tablename__ = "menu_item_allergens"
+
+    menu_item_id: Mapped[str] = mapped_column(String(36), sqlalchemy.ForeignKey("menu_items.id", ondelete="CASCADE"), primary_key=True)
+    allergen_id: Mapped[int] = mapped_column(Integer, sqlalchemy.ForeignKey("allergens.id", ondelete="CASCADE"), primary_key=True)

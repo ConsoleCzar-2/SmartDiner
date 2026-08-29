@@ -58,7 +58,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 href="/admin"
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition",
-                                    pathname === "/admin" ? "bg-[#f6a61d] text-[#1e170d]" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                                    pathname === "/admin"
+                                        ? "bg-white/10 text-white"
+                                        : "text-zinc-400 hover:bg-white/5 hover:text-white"
                                 )}
                             >
                                 <LayoutDashboard className="h-4 w-4" />
@@ -68,11 +70,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 href="/admin/conversations"
                                 className={cn(
                                     "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition",
-                                    pathname === "/admin/conversations" ? "bg-[#f6a61d] text-[#1e170d]" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                                    pathname.startsWith("/admin/conversations")
+                                        ? "bg-white/10 text-white"
+                                        : "text-zinc-400 hover:bg-white/5 hover:text-white"
                                 )}
                             >
                                 <MessageSquare className="h-4 w-4" />
                                 Conversations
+                            </Link>
+                            <Link
+                                href="/admin/menu-manager"
+                                className={cn(
+                                    "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition",
+                                    pathname.startsWith("/admin/menu-manager")
+                                        ? "bg-white/10 text-white"
+                                        : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                                )}
+                            >
+                                <LayoutDashboard className="h-4 w-4" />
+                                Menu Manager
                             </Link>
                         </nav>
                         <div className="p-4 border-t border-white/10">

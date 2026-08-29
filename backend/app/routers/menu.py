@@ -61,10 +61,10 @@ async def get_restaurant_menu(restaurant_id: str, db: AsyncSession = Depends(get
             return cached_data
 
     query = select(MenuItem).options(
-        selectinload(MenuItem.ingredients).selectinload(Ingredient.allergens)
+        selectinload(MenuItem.ingredients).selectinload(Ingredient.allergens),
+        selectinload(MenuItem.direct_allergens)
     ).where(
-        MenuItem.restaurant_id == restaurant_id,
-        MenuItem.is_available == True
+        MenuItem.restaurant_id == restaurant_id
     )
     result = await db.execute(query)
     menu_items = result.scalars().all()
@@ -72,10 +72,15 @@ async def get_restaurant_menu(restaurant_id: str, db: AsyncSession = Depends(get
     # Extract unique allergens for each item
     for item in menu_items:
         allergens = set()
+        direct_allergen_ids = []
+        for direct_al in item.direct_allergens:
+            allergens.add(direct_al.name)
+            direct_allergen_ids.append(direct_al.id)
         for ingredient in item.ingredients:
             for allergen in ingredient.allergens:
                 allergens.add(allergen.name)
         setattr(item, "allergens", list(allergens))
+        setattr(item, "direct_allergen_ids", direct_allergen_ids)
         
     # Update cache
     MENU_CACHE[restaurant_id] = (menu_items, current_time)

@@ -10,7 +10,7 @@ export interface RecommendedItem {
     quantity: number;
     unit_price: number;
     subtotal: number;
-    is_veg: boolean;
+    dietary_preference: string;
     spice_level: string;
     serving_size: number;
     total_servings: number;

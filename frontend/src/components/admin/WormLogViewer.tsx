@@ -65,6 +65,23 @@ export default function WormLogViewer({ log, viewMode }: { log: any; viewMode: '
                 </div>
             </div>
 
+            {/* Decision Rationale */}
+            {log.solver_output?.decision_rationale && (
+                <div className="bg-black/30 border border-white/10 rounded-xl p-5">
+                    <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Decision Rationale (Math Bounds)
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                        {Object.entries(log.solver_output.decision_rationale).map(([key, value]) => (
+                            <div key={key} className="flex justify-between items-center bg-white/5 px-4 py-3 rounded-lg">
+                                <span className="text-zinc-500 capitalize">{key.replace(/_/g, ' ')}</span>
+                                <span className="font-mono text-emerald-400 font-semibold">{String(value)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Recommended Cart */}
             <div className="bg-black/30 border border-white/10 rounded-xl p-5">
                 <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">

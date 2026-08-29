@@ -19,10 +19,11 @@ class RecommendedItem(BaseModel):
     quantity: int
     unit_price: float
     subtotal: float
-    is_veg: bool
+    dietary_preference: str
     spice_level: str
     serving_size: int
     total_servings: int = Field(..., description="quantity * serving_size")
+    image_url: Optional[str] = Field(default=None)
 
 
 class RecommendationResult(BaseModel):
@@ -34,7 +35,9 @@ class RecommendationResult(BaseModel):
     budget_remaining: Optional[float] = Field(default=None)
     total_servings: int = Field(default=0)
     veg_servings: int = Field(default=0)
+    vegan_servings: int = Field(default=0)
     nonveg_servings: int = Field(default=0)
+    decision_rationale: Optional[dict] = Field(default=None, description="Raw math bounds used by the solver")
 
 
 class ChatResponse(BaseModel):

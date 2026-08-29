@@ -8,9 +8,19 @@ from app.config import settings
 from app.database import init_db, close_db
 
 
+import os, json, tempfile
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
+    # If running on Render (or anywhere without ADC), bootstrap GCS credentials from env
+    creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if creds_json and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+        creds_path = os.path.join(tempfile.gettempdir(), "gcs-credentials.json")
+        with open(creds_path, "w") as f:
+            f.write(creds_json)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path
+
     # Startup
     await init_db()
     yield
@@ -59,8 +69,12 @@ async def health_check():
 
 
 # Import and include routers
-from app.routers import chat, menu, admin, auth
+from app.routers import chat, menu, admin, auth, orders, cart, admin_menu
 app.include_router(chat.router)
 app.include_router(menu.router)
 app.include_router(admin.router)
 app.include_router(auth.router)
+app.include_router(orders.router)
+app.include_router(cart.router)
+app.include_router(admin_menu.router)
+# reload

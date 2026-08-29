@@ -19,9 +19,11 @@ class MenuItemResponse(BaseModel):
     description: Optional[str] = None
     category: str
     price: float
-    is_veg: bool
+    dietary_preference: str
     spice_level: str
     image_url: Optional[str] = None
+    is_available: bool = True
     allergens: list[str] = []
+    direct_allergen_ids: list[int] = []
 
     model_config = ConfigDict(from_attributes=True)
