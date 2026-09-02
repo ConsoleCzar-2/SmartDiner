@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Plus, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -91,6 +91,14 @@ function ChatContent() {
             });
     }, [restaurantId, router]);
 
+    const clearChat = () => {
+        setConversationId(null);
+        setMessages(initialMessages);
+        setRecommendation(null);
+        setConstraints(null);
+        setError(null);
+    };
+
     const submit = async (message: string) => {
         setError(null);
         setMessages((current) => [
@@ -162,9 +170,16 @@ function ChatContent() {
                         </h1>
                     </div>
                 </div>
-                <span className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[.06] px-3 py-2 text-[10px] font-semibold uppercase tracking-[.12em] text-emerald-300">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Safety filter active
-                </span>
+                <div className="flex flex-col items-end gap-3">
+                    {conversationId && (
+                        <button 
+                            onClick={clearChat}
+                            className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/50 px-4 py-2 text-xs font-semibold tracking-wide text-zinc-300 transition hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400">
+                            <Plus className="h-4 w-4" />
+                            Start fresh conversation
+                        </button>
+                    )}
+                </div>
             </div>
             <div className="mt-7 grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_390px]">
                 <ChatPanel

@@ -123,8 +123,25 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: 
             else:
                 rejection_message = "I can only help you with ordering food, modifying your current cart, or answering questions about the menu."
                 
+            # Save state
+            new_messages = list(conversation.messages)
+            new_messages.append({
+                "id": str(uuid.uuid4()),
+                "role": "user",
+                "content": request.message,
+                "createdAt": datetime.utcnow().isoformat() + "Z"
+            })
+            new_messages.append({
+                "id": str(uuid.uuid4()),
+                "role": "assistant",
+                "content": rejection_message,
+                "createdAt": datetime.utcnow().isoformat() + "Z"
+            })
+            conversation.messages = new_messages
+            await db.commit()
+
             return ChatResponse(
-                conversation_id=request.conversation_id or uuid.uuid4(),
+                conversation_id=UUID(conversation.id),
                 recommendation=RecommendationResult(
                     status="Infeasible",
                     reason=intent_result.reason,
