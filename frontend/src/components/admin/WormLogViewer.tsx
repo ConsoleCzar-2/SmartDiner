@@ -26,6 +26,7 @@ export default function WormLogViewer({ log, viewMode }: { log: any; viewMode: '
                         <div><span className="text-zinc-500">Budget:</span> <span className="font-semibold text-white">₹{log.extracted_constraints?.max_budget}</span></div>
                         <div><span className="text-zinc-500">People:</span> <span className="font-semibold text-white">{log.extracted_constraints?.people_count}</span></div>
                         <div><span className="text-zinc-500">Veg:</span> <span className="font-semibold text-emerald-400">{log.extracted_constraints?.vegetarian_count}</span></div>
+                        <div><span className="text-zinc-500">Vegan:</span> <span className="font-semibold text-green-300">{log.extracted_constraints?.vegan_count ?? 0}</span></div>
                         <div><span className="text-zinc-500">Non-Veg:</span> <span className="font-semibold text-red-400">{log.extracted_constraints?.non_vegetarian_count}</span></div>
                         <div><span className="text-zinc-500">Spice:</span> <span className="font-semibold text-orange-400">{log.extracted_constraints?.max_spice_level}</span></div>
                     </div>
@@ -34,6 +35,22 @@ export default function WormLogViewer({ log, viewMode }: { log: any; viewMode: '
                             <div className="text-zinc-500 mb-1">Preferences:</div>
                             <div className="text-zinc-300">
                                 {log.extracted_constraints?.preferred_categories?.join(", ")} {log.extracted_constraints?.preferred_cuisines?.join(", ")}
+                            </div>
+                        </div>
+                    )}
+                    {(log.extracted_constraints?.allergens?.length > 0) && (
+                        <div className="mt-4 pt-4 border-t border-white/5 text-xs">
+                            <div className="text-zinc-500 mb-1">Allergens:</div>
+                            <div className="text-red-400 font-medium">
+                                {log.extracted_constraints?.allergens?.join(", ")}
+                            </div>
+                        </div>
+                    )}
+                    {(log.extracted_constraints?.excluded_dishes?.length > 0) && (
+                        <div className="mt-4 pt-4 border-t border-white/5 text-xs">
+                            <div className="text-zinc-500 mb-1">Excluded Dishes:</div>
+                            <div className="text-zinc-400 line-through decoration-red-500/50">
+                                {log.extracted_constraints?.excluded_dishes?.join(", ")}
                             </div>
                         </div>
                     )}

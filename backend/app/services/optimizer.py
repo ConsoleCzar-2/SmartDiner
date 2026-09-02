@@ -124,8 +124,11 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem], nonveg
         "min_total_servings": total_people,
         "max_servings_cap": total_people * 4,
         "min_categories": min_categories,
-        "nonveg_people": nonveg_people,
-        "specific_dishes_matched": len(constraints.specific_dish_requests) if constraints.specific_dish_requests else 0
+        "veg_people": constraints.vegetarian_count or 0,
+        "vegan_people": constraints.vegan_count or 0,
+        "nonveg_people": constraints.non_vegetarian_count or 0,
+        "specific_dishes_matched": len(constraints.specific_dish_requests) if constraints.specific_dish_requests else 0,
+        "excluded_dishes_enforced": len(constraints.excluded_dishes) if constraints.excluded_dishes else 0
     }
 
     if status_str != "Optimal":
