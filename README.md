@@ -28,7 +28,7 @@ SmartDiner acts as a fully autonomous concierge for restaurants. Unlike traditio
 4. **ILP Optimization Solver:** Uses Integer Linear Programming (PuLP) to find the absolute mathematically optimal combination of dishes that satisfy the budget, dietary ratios, party size, and requested dish swaps.
 5. **Grounded Explanation:** The LLM summarizes the mathematically-verified cart back to the user in a natural, hallucination-free response.
 
-This dual-engine architecture guarantees **100% safety and compliance** while maintaining conversational flexibility, live cart editing, and state persistence.
+This multi-step governed architecture guarantees **100% safety and compliance** while maintaining conversational flexibility, live cart editing, and state persistence.
 
 ---
 
