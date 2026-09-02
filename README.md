@@ -45,7 +45,14 @@ This dual-engine architecture guarantees **100% safety and compliance** while ma
 
 Both the backend and frontend must be run concurrently.
 
-### 1. Backend Setup
+### 1. Start Infrastructure (Database)
+Before running the backend, you must start the required infrastructure using Docker:
+```bash
+docker compose up -d db
+```
+*(This starts the PostgreSQL database on port 5433)*
+
+### 2. Backend Setup
 ```bash
 cd backend
 python -m venv .venv
@@ -62,7 +69,7 @@ uvicorn app.main:app --reload
 ```
 *(The interactive Swagger UI for the API will be automatically generated and available at http://localhost:8000/docs)*
 
-### 2. Frontend Setup
+### 3. Frontend Setup
 ```bash
 cd frontend
 npm install
@@ -70,7 +77,7 @@ npm install
 npm run dev
 ```
 
-### 3. Database Seeding
+### 4. Database Seeding
 To populate the database with sample restaurants, users, and rich menu items, run the data seeder:
 ```bash
 cd backend

@@ -7,8 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db, close_db
 
-
 import os, json, tempfile
+from dotenv import load_dotenv
+
+# Load environment variables into os.environ for GCP client
+load_dotenv("../.env")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

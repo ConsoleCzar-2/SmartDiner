@@ -169,3 +169,4 @@ Requires a valid JWT token (`Authorization: Bearer <token>`). The user must have
 - **`401 Unauthorized`**: Missing or invalid token.
 - **`403 Forbidden`**: The admin does not have permission to view logs for this restaurant.
 - **`404 Not Found`**: The audit log has not been generated yet, or the conversation ID is invalid.
+- **`500 Internal Server Error`**: Catastrophic failure in the GCS client or bucket access.
