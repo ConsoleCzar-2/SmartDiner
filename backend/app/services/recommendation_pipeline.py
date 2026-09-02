@@ -7,23 +7,30 @@ from app.schemas.constraints import ExtractedConstraints
 from app.schemas.recommendation import (
     ChatRequest, ChatResponse, RecommendationResult, RecommendedItem
 )
+from app.services.intent_classifier import classify_intent
 from app.services.constraint_extractor import extract_constraints
+from app.services.constraint_merger import merge_constraints
 from app.services.menu_filter import filter_menu_items
 from app.services.optimizer import optimize_menu
-from app.services.explanation_generator import generate_explanation
+from app.services.explanation_generator import generate_explanation, generate_question_answer
 from app.models.restaurant import Restaurant
 from app.models.conversation import Conversation
 from sqlalchemy import select
 import uuid
 from datetime import datetime
+
 async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: str) -> ChatResponse:
     """
     Full recommendation pipeline:
-      1. Extract constraints from user message (LLM)
+      0.5 Intent Classification (Guardrail)
+      1. Extract constraints from user message (LLM Delta)
+      1.5 Merge delta into existing conversation state (Python Deterministic)
       2. Filter menu items from database (SQL)
       3. Optimize meal combination (ILP Solver)
       4. Generate grounded explanation (LLM)
     """
+    import asyncio
+    
     # --- Step 0: Conversation State Management ---
     conversation = None
     conversation_history = []
@@ -47,12 +54,95 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: 
         await db.commit()
         await db.refresh(conversation)
 
-    # --- Step 1: LLM Constraint Extraction ---
-    constraints = await extract_constraints(
-        request.message, 
-        conversation_history=conversation_history, 
-        existing_constraints=existing_constraints
+    # --- Step 0.5 & 1: Parallel Intent Classification and Constraint Extraction ---
+    intent_result, delta_constraints = await asyncio.gather(
+        classify_intent(request.message),
+        extract_constraints(
+            request.message, 
+            conversation_history=conversation_history, 
+            existing_constraints=existing_constraints,
+            current_cart=conversation.current_cart
+        )
     )
+
+    if intent_result.intent in ["OFF_TOPIC", "ADVERSARIAL", "GREETING", "QUESTION"]:
+        if intent_result.intent == "QUESTION":
+            answer = await generate_question_answer(
+                request.message, 
+                conversation.current_cart, 
+                existing_constraints, 
+                conversation_history
+            )
+            
+            # Save state
+            new_messages = list(conversation.messages)
+            new_messages.append({
+                "id": str(uuid.uuid4()),
+                "role": "user",
+                "content": request.message,
+                "createdAt": datetime.utcnow().isoformat() + "Z"
+            })
+            new_messages.append({
+                "id": str(uuid.uuid4()),
+                "role": "assistant",
+                "content": answer,
+                "createdAt": datetime.utcnow().isoformat() + "Z"
+            })
+            conversation.messages = new_messages
+            await db.commit()
+            
+            # Reconstruct RecommendationResult from current_cart
+            computed_total = sum(item.get("subtotal", 0) for item in conversation.current_cart)
+            budget_remaining = None
+            if existing_constraints.get("max_budget"):
+                budget_remaining = round(existing_constraints["max_budget"] - computed_total, 2)
+                
+            rec = RecommendationResult(
+                status="Optimal",
+                reason="Restored from draft",
+                items=conversation.current_cart,
+                computed_total=computed_total,
+                budget_remaining=budget_remaining,
+                total_servings=0,
+                veg_servings=0,
+                vegan_servings=0,
+                nonveg_servings=0,
+                decision_rationale=None
+            )
+            
+            return ChatResponse(
+                conversation_id=UUID(conversation.id),
+                recommendation=rec,
+                explanation=answer,
+                extracted_constraints=ExtractedConstraints(**existing_constraints) if existing_constraints else ExtractedConstraints(),
+            )
+        else:
+            # Short-circuit pipeline and return friendly/firm response
+            if intent_result.intent == "GREETING":
+                rejection_message = "Hello! Tell me about your party size, budget, or dietary preferences, and I'll build the perfect menu for you."
+            else:
+                rejection_message = "I can only help you with ordering food, modifying your current cart, or answering questions about the menu."
+                
+            return ChatResponse(
+                conversation_id=request.conversation_id or uuid.uuid4(),
+                recommendation=RecommendationResult(
+                    status="Infeasible",
+                    reason=intent_result.reason,
+                    items=[],
+                    computed_total=0.0,
+                    budget_remaining=0.0,
+                    total_servings=0,
+                    veg_servings=0,
+                    vegan_servings=0,
+                    nonveg_servings=0,
+                    decision_rationale=None
+                ),
+                explanation=rejection_message,
+                extracted_constraints=ExtractedConstraints(),
+            )
+
+    # --- Step 1.5: Deterministic State Merging ---
+    constraints = merge_constraints(existing_constraints, delta_constraints)
 
     # --- Step 2: SQL Deterministic Filter ---
     filtered = await filter_menu_items(db, str(request.restaurant_id), constraints)
@@ -115,7 +205,6 @@ async def process_chat_request(request: ChatRequest, db: AsyncSession, user_id: 
 
     # --- Step 6: Save State ---
     # Append to conversation history
-    # The JSONB field needs to be updated by reassignment or via mutable dict
     new_messages = list(conversation.messages)
     new_messages.append({
         "id": str(uuid.uuid4()),

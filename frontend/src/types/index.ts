@@ -29,6 +29,8 @@ export interface RecommendationResult {
 export interface ExtractedConstraints {
     people_count?: number | null;
     vegetarian_count?: number | null;
+    vegan_count?: number | null;
+    non_vegetarian_count?: number | null;
     max_budget?: number | null;
     max_spice_level?: string | null;
     allergens?: string[];

@@ -77,6 +77,41 @@ Returned when the ILP solver confirms no mathematical combination of items exist
 }
 ```
 
+### `GET /api/chat/active`
+Retrieves the most recent active conversation for the user at a given restaurant, allowing the frontend to seamlessly restore the chat history, constraints, and the live draft cart after a page refresh.
+
+#### Query Parameters
+- `restaurant_id` (string, required): The ID of the restaurant.
+
+#### Success Response (200 OK)
+```json
+{
+  "conversation_id": "01a03c12-0f10-79cc-ae4f-6f32ca7a29b0",
+  "history": [
+    {
+      "id": "abc-123",
+      "role": "user",
+      "content": "Food for 4",
+      "createdAt": "2026-08-28T10:00:00Z"
+    }
+  ],
+  "current_cart": [
+    {
+      "id": "01a03c12-0f10-79cc-ae4f-6f32ca7a29c1",
+      "name": "Grilled Salmon",
+      "category": "Main Course",
+      "quantity": 2,
+      "subtotal": 2400
+    }
+  ],
+  "current_constraints": {
+    "people_count": 4,
+    "max_budget": null
+  }
+}
+```
+*Note: If no active conversation exists, `conversation_id` will be `null`.*
+
 ---
 
 ## 2. Restaurant & Menu Browsing

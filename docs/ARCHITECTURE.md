@@ -10,14 +10,19 @@ flowchart TD
     Client[Next.js Client] -->|API Request| FastAPI[FastAPI Backend]
     FastAPI --> Pipeline[Governed Recommendation Pipeline]
     
-    subgraph Pipeline [4-Step Governed Pipeline]
+    subgraph Pipeline [Governed Recommendation Pipeline]
         direction TB
+        Int[0.5 Intent Classifier]
         Ext[1. LLM Constraint Extractor]
+        Merge[1.5 State Merger]
         DBF[2. PostgreSQL Menu Filter]
         ILP[3. PuLP Integer Linear Solver]
         Exp[4. LLM Explanation Generator]
+        Ans[Question Answerer]
         
-        Ext -->|Extracted JSON| DBF
+        Int & Ext -.->|Concurrent| Merge
+        Int -->|QUESTION| Ans
+        Merge -->|Extracted JSON| DBF
         DBF -->|Safe Candidate Items| ILP
         ILP -->|Mathematically Optimal Menu| Exp
     end
@@ -28,22 +33,31 @@ flowchart TD
     %% Audit Logging Background Task
     FastAPI -.- |Background Task| WORM[(GCS WORM Bucket)]
     
-    Ext <--> Gemini1[Gemini 3.5 Flash Lite]
+    %% AI Models mapping
+    Gemini[Gemini 3.5 Flash Lite]
+    Int <-->|Temp: 0.0| Gemini
+    Ext <-->|Temp: 0.1| Gemini
+    Ans <-->|Temp: 0.3| Gemini
+    Exp <-->|Temp: 0.3| Gemini
+    
     DBF <--> DB[(PostgreSQL 16)]
-    Exp <--> Gemini2[Gemini 3.5 Flash Lite]
 ```
 
-## 2. The 4-Step Governed Pipeline
+## 2. The Governed Pipeline
 
-### Step 1: Constraint Extraction (LLM)
-The user's natural language input (e.g., "Food for 3, no nuts, budget ₹2000") is passed to Gemini 3.5 Flash Lite. The LLM is forced to return a strictly typed JSON object conforming to a Pydantic Schema.
-- **Input:** Natural language + Conversation History + Previous State.
-- **Output:** Structured JSON (`ExtractedConstraints`).
-- **Safety:** Temperature is set to `0.1` to maximize determinism. Nullable properties ensure the LLM doesn't hallucinate default values when a constraint isn't mentioned.
+### Step 0.5 & 1: Intent Classification & Constraint Extraction (LLM)
+The user's natural language input (e.g., "Food for 3, no nuts, budget ₹2000" or "What did you change?") is passed to two concurrent Gemini 3.5 Flash Lite calls:
+1. **Intent Classifier:** Determines if the message is an `ORDER`, `MODIFICATION`, `QUESTION`, `GREETING`, `OFF_TOPIC`, or `ADVERSARIAL`. 
+2. **Constraint Extractor:** Simultaneously extracts structured constraints from the message, maintaining awareness of the `Current Draft Cart` to handle specific dish swaps or removals.
+
+*Short-Circuit:* If the intent is `QUESTION`, the pipeline bypasses the math solver entirely and routes to a specific Q&A prompt to answer the user based on their current cart without modifying it. If the intent is malicious or off-topic, it rejects the request instantly.
+
+### Step 1.5: State Merging (Deterministic Python)
+The delta constraints extracted in Step 1 are merged securely with the existing conversation state. List fields like `excluded_dishes` or `preferred_categories` override the delta, while numeric limits like `max_budget` update the ongoing state constraints.
 
 ### Step 2: Deterministic Menu Filtering (SQL)
-The structured constraints are passed to the database layer. SQLAlchemy dynamically builds a query to fetch only the menu items that mathematically and factually satisfy the hard limits.
-- **Action:** Filters out items exceeding `max_spice_level`, costing more than the entire `max_budget`, or containing any `excluded_allergens`.
+The merged constraints are passed to the database layer. SQLAlchemy dynamically builds a query to fetch only the menu items that mathematically and factually satisfy the hard limits.
+- **Action:** Filters out items exceeding `max_spice_level`, costing more than the entire `max_budget`, or containing any `excluded_allergens`. (Note: Category preferences are *not* strict filters here to prevent destroying existing cart items).
 - **Performance:** Employs an in-memory TTL caching layer to bypass heavy multi-table DB joins for frequently accessed menus, eliminating N+1 query latency.
 - **Safety:** Allergens are traced deep into the relationship tree (`MenuItem -> Ingredient -> Allergen`), guaranteeing absolute dietary safety without relying on LLM reasoning.
 
@@ -53,11 +67,29 @@ The filtered "safe" candidate items are passed to an Integer Linear Programming 
 - **Constraints:** 
   - Total Cost ≤ `max_budget`
   - Total Servings ≥ `people_count`
-  - Vegetarian Servings ≥ `vegetarian_count`
-  - Vegan Servings ≥ `vegan_count`
-  - Non-Veg Servings ≥ `non_vegetarian_count`
+  - Vegetarian/Vegan/Non-Veg Servings minimums based on headcount
+  - Must NOT select any items in `excluded_dishes` (qty = 0)
+  - Must include at least 1 item from requested `preferred_categories`
   - Total Servings ≤ `people_count * 4` (Reasonable Feast Limit)
-- **Safety:** This step guarantees that the final menu perfectly respects the budget and feeding requirements. It eliminates the "bad math" problem inherent to autoregressive LLMs.
+- **Safety:** This step guarantees that the final menu perfectly respects the budget, feeding requirements, and contextual dish swaps/removals requested by the user. It completely eliminates the "bad math" problem inherent to autoregressive LLMs.
+
+```mermaid
+stateDiagram-v2
+    [*] --> IntentClassification
+    
+    IntentClassification --> ConstraintExtraction: ORDER / MODIFICATION
+    IntentClassification --> QuestionAnswering: QUESTION
+    IntentClassification --> Reject: OFF_TOPIC / ADVERSARIAL / GREETING
+    
+    QuestionAnswering --> [*]
+    Reject --> [*]
+    
+    ConstraintExtraction --> StateMerger
+    StateMerger --> SQLFilter
+    SQLFilter --> ILPSolver
+    ILPSolver --> ExplanationGeneration
+    ExplanationGeneration --> [*]
+```
 
 ### Step 4: Explanation Generation (LLM)
 The mathematically verified output from Step 3 is fed back into Gemini 3.5 Flash Lite alongside the original constraints.

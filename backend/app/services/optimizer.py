@@ -20,90 +20,118 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem], nonveg
             "total_servings": 0
         }
 
-    # --- 1. Dynamic Diversity Cap ---
     total_people = constraints.people_count or 1
-    # max_qty scales dynamically: max 2 for tiny groups, larger caps for big groups.
     max_qty_per_dish = max(2, math.ceil(total_people / 3.0))
 
-    # --- 2. Decision Variables ---
+    # Calculate available categories
+    available_categories = len(set(item.category for item in all_items))
+    min_categories = min(available_categories, max(2, math.ceil(total_people / 2.0)))
+
+    # --- 1. Decision Variables ---
     item_vars = {}
+    category_vars = {}
+    
     for item in all_items:
-        # id is a UUID object, stringify it for the variable name
         safe_id = str(item.id).replace("-", "_")
-        # Ensure quantity is >= 0, integer, and <= max_qty_per_dish
         var = pulp.LpVariable(f"qty_{safe_id}", lowBound=0, upBound=max_qty_per_dish, cat='Integer')
         item_vars[item.id] = var
+        
+    for cat in set(item.category for item in all_items):
+        safe_cat = cat.replace(" ", "_").replace("-", "_")
+        c_var = pulp.LpVariable(f"cat_{safe_cat}", cat='Binary')
+        category_vars[cat] = c_var
+        
+        # Link item vars to category vars (Big-M method)
+        cat_items = [item for item in all_items if item.category == cat]
+        M = max_qty_per_dish * len(cat_items)
+        prob += pulp.lpSum([item_vars[i.id] for i in cat_items]) <= M * c_var, f"LinkCat_{safe_cat}"
 
-    # --- 3. Objective Function ---
-    # Maximize: SUM(Quantity * Rating * Serving Size)
-    # We want highly rated food that provides good value (feeds people).
-    prob += pulp.lpSum([item_vars[item.id] * float(item.rating) * item.serving_size for item in all_items])
+    # --- 2. Objective Function ---
+    # Maximize: SUM(Quantity * Rating * Serving Size) + Bonus for category diversity
+    prob += pulp.lpSum([item_vars[item.id] * float(item.rating) * item.serving_size for item in all_items]) + pulp.lpSum([3.0 * c_var for c_var in category_vars.values()])
 
-    # --- 4. Hard Constraints ---
+    # --- 3. Hard Constraints ---
     
-    # A. Budget (Absolute guarantee)
+    # A. Budget
     if constraints.max_budget:
         prob += pulp.lpSum([item_vars[item.id] * float(item.price) for item in all_items]) <= float(constraints.max_budget), "BudgetConstraint"
         
-    # B. Total Servings (Ensure everyone eats)
+    # B. Minimum Total Servings
     prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in all_items]) >= total_people, "TotalServingsConstraint"
     
-    # C. Vegetarian Servings (Ensure vegetarians have enough food specifically for them)
+    # C. Dietary Separation & Servings
     veg_people = constraints.vegetarian_count or 0
+    vegan_people = constraints.vegan_count or 0
+    nonveg_people = constraints.non_vegetarian_count or 0
+    
     if veg_people > 0:
-        if not (veg_items + vegan_items):
-            return {
-                "status": "Infeasible",
-                "reason": "No vegetarian/vegan items left after filtering, but vegetarians are present.",
-                "items": [],
-                "total_cost": 0.0,
-                "total_servings": 0
-            }
         prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in (veg_items + vegan_items)]) >= veg_people, "VegServingsConstraint"
 
-    # D. Vegan Servings
-    vegan_people = constraints.vegan_count or 0
     if vegan_people > 0:
-        if not vegan_items:
-            return {
-                "status": "Infeasible",
-                "reason": "No vegan items left after filtering, but vegans are present.",
-                "items": [],
-                "total_cost": 0.0,
-                "total_servings": 0
-            }
         prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in vegan_items]) >= vegan_people, "VeganServingsConstraint"
 
-    # E. Non-Vegetarian Servings (Ensure non-vegetarians get some non-veg food)
-    nonveg_people = constraints.non_vegetarian_count or 0
-    if nonveg_people > 0 and nonveg_items:
+    if nonveg_people > 0:
         prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in nonveg_items]) >= nonveg_people, "NonVegServingsConstraint"
+    else:
+        # HARD GUARDRAIL: If 0 non-veg people, force non-veg items to 0
+        for item in nonveg_items:
+            prob += item_vars[item.id] == 0, f"ForceZeroNonVeg_{str(item.id).replace('-', '_')}"
+            
+    # Upper bounds to prevent over-ordering specific dietary types when not needed
+    if nonveg_people > 0:
+        prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in nonveg_items]) <= nonveg_people * 4, "MaxNonVegServings"
+    
+    if veg_people + vegan_people > 0:
+        prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in (veg_items + vegan_items)]) <= (veg_people + vegan_people) * 4, "MaxVegServings"
 
-    # E. Reasonable Feast Limit (Prevent ordering the entire menu if budget is unrestricted)
-    # 4 servings per person is an absolute upper limit for a massive feast.
+    # D. Maximum Total Servings (Feast Limit)
     prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in all_items]) <= total_people * 4, "MaxServingsConstraint"
+    
+    # E. Category Diversity
+    prob += pulp.lpSum([c_var for c_var in category_vars.values()]) >= min_categories, "MinCategoryDiversity"
 
-    # --- 5. Solve the Problem ---
-    # Disable logs so it doesn't spam the console during API requests
+    # F. Specific Dish Requests (Substring Matching)
+    if constraints.specific_dish_requests:
+        for req_dish in constraints.specific_dish_requests:
+            req_dish_lower = req_dish.lower()
+            matched_items = [item for item in all_items if req_dish_lower in item.name.lower()]
+            if matched_items:
+                # Force at least 1 of the matched items to be selected
+                prob += pulp.lpSum([item_vars[i.id] for i in matched_items]) >= 1, f"SpecificDish_{req_dish_lower.replace(' ', '_')[:20]}"
+
+    # G. Excluded Dishes
+    if constraints.excluded_dishes:
+        for excl_dish in constraints.excluded_dishes:
+            excl_dish_lower = excl_dish.lower()
+            matched_items = [item for item in all_items if excl_dish_lower in item.name.lower()]
+            for matched in matched_items:
+                prob += item_vars[matched.id] == 0, f"ExcludeDish_{str(matched.id).replace('-', '_')}"
+
+    # H. Preferred Categories
+    if constraints.preferred_categories:
+        for p_cat in constraints.preferred_categories:
+            if p_cat in category_vars:
+                # Force the binary variable for this category to be 1
+                prob += category_vars[p_cat] >= 1, f"PrefCategory_{p_cat.replace(' ', '_')}"
+
+    # --- 4. Solve ---
     prob.solve(pulp.PULP_CBC_CMD(msg=0))
 
-    # --- 6. Parse Output ---
     status_str = pulp.LpStatus[prob.status]
     rationale = {
-        "objective": "Maximize SUM(Quantity * Rating * Serving Size)",
+        "objective": "Maximize SUM(Qty * Rating * Serving Size) + Category Diversity Bonus",
         "budget_limit": float(constraints.max_budget) if constraints.max_budget else "None",
         "min_total_servings": total_people,
         "max_servings_cap": total_people * 4,
-        "min_veg_servings": veg_people if veg_people > 0 else 0,
-        "min_vegan_servings": vegan_people if vegan_people > 0 else 0,
-        "min_nonveg_servings": nonveg_people if nonveg_people > 0 else 0,
-        "max_qty_per_dish": max_qty_per_dish
+        "min_categories": min_categories,
+        "nonveg_people": nonveg_people,
+        "specific_dishes_matched": len(constraints.specific_dish_requests) if constraints.specific_dish_requests else 0
     }
 
     if status_str != "Optimal":
         return {
             "status": status_str,
-            "reason": "Could not find a mathematically possible combination. The budget might be too tight, or you requested too much food for too little money.",
+            "reason": "Could not find a mathematically possible combination. The budget might be too tight, or conflicting dietary/specific dish requests.",
             "items": [],
             "total_cost": 0.0,
             "total_servings": 0,
@@ -115,7 +143,6 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem], nonveg
     total_servings = 0
     
     for item in all_items:
-        # value() gets the solved integer value for the variable
         qty = int(pulp.value(item_vars[item.id]) or 0)
         if qty > 0:
             subtotal = float(item.price) * qty
@@ -127,7 +154,6 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem], nonveg
             total_cost += subtotal
             total_servings += item.serving_size * qty
 
-    # Sort descending by subtotal to put big mains at the top of the list
     selected_items.sort(key=lambda x: x["subtotal"], reverse=True)
 
     return {

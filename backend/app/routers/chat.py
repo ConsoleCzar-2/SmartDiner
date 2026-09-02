@@ -81,5 +81,6 @@ async def get_active_conversation(
     return {
         "conversation_id": conv.id,
         "history": conv.messages,
-        "current_cart": conv.current_cart
+        "current_cart": conv.current_cart,
+        "current_constraints": conv.current_constraints
     }

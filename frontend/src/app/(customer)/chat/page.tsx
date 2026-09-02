@@ -31,6 +31,7 @@ function ChatContent() {
 
     const [messages, setMessages] = useState<ConversationMessage[]>(initialMessages);
     const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
+    const [constraints, setConstraints] = useState<any>(null);
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [restaurant, setRestaurant] = useState<{ id: string; name: string; image_url: string | null }>({ id: "", name: "", image_url: null });
     const [isLoading, setIsLoading] = useState(false);
@@ -53,13 +54,29 @@ function ChatContent() {
                 const found = data.find((r) => r.id === restaurantId);
                 if (found) {
                     setRestaurant({ id: found.id, name: found.name, image_url: found.image_url });
-                    // Fetch active chat
                     import("@/lib/api").then(({ fetchActiveChat }) => {
                         fetchActiveChat(found.id).then((chatData) => {
                             if (chatData && chatData.conversation_id) {
                                 setConversationId(chatData.conversation_id);
                                 if (chatData.history && chatData.history.length > 0) {
                                     setMessages(chatData.history);
+                                }
+                                if (chatData.current_constraints) {
+                                    setConstraints(chatData.current_constraints);
+                                }
+                                if (chatData.current_cart && chatData.current_cart.length > 0) {
+                                    // Reconstruct recommendation result
+                                    const total = chatData.current_cart.reduce((sum: number, item: any) => sum + item.subtotal, 0);
+                                    setRecommendation({
+                                        status: "Optimal",
+                                        reason: "Restored from draft",
+                                        items: chatData.current_cart,
+                                        computed_total: total,
+                                        budget_remaining: chatData.current_constraints?.max_budget ? chatData.current_constraints.max_budget - total : null,
+                                        total_servings: 0,
+                                        veg_servings: 0,
+                                        nonveg_servings: 0
+                                    });
                                 }
                             }
                         }).catch(console.error);
@@ -94,6 +111,9 @@ function ChatContent() {
             });
             setConversationId(response.conversation_id);
             setRecommendation(response.recommendation);
+            if (response.extracted_constraints) {
+                setConstraints(response.extracted_constraints);
+            }
             setMessages((current) => [
                 ...current,
                 {
@@ -153,7 +173,7 @@ function ChatContent() {
                     error={error}
                     onSend={submit}
                 />
-                <CartPanel recommendation={recommendation} conversationId={conversationId} />
+                <CartPanel recommendation={recommendation} constraints={constraints} conversationId={conversationId} />
             </div>
         </div>
     );

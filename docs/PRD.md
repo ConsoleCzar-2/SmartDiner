@@ -16,11 +16,15 @@ SmartDiner is designed to bridge this gap. It is an AI-powered, deterministic re
 ### 3.1. Governed AI Concierge
 - **Natural Language Input:** Customers can type complex constraints naturally (e.g., "Food for 5, 2 vegetarians, no dairy, budget is ₹3000").
 - **Zero Hallucination Guarantee:** The system must never recommend an item that is out of stock, exceeds the budget, or contains an excluded allergen.
+- **Contextual Swapping & Editing:** The system remembers the current draft order, allowing users to make precise edits like "remove the chicken and add a veg starter" without losing their existing cart.
+- **Conversational Q&A:** Users can ask questions about their current draft cart (e.g., "what did you change?") and receive grounded answers without unintentionally modifying their order.
 - **Mathematical Optimization:** The system automatically maximizes the overall "value" of the order (rating × serving size) while strictly adhering to all user constraints.
 
-### 3.2. Visual Menu Browser
+### 3.2. Visual Menu Browser & Live Cart
 - Customers can visually browse the restaurant's offerings categorized by type (e.g., Starters, Main Course, Beverages).
 - Items must display clear dietary tags (Vegetarian/Vegan/Non-Vegetarian) and spice level indicators.
+- **Live Order Ticket:** An interactive cart updates instantly with manual item changes. It displays dynamic tracking for total allocated budget, remaining budget (highlighted in red if exceeded), and breakdowns for Veg, Vegan, Non-Veg, and Total People.
+- **Session Persistence:** Draft orders, constraints, and chat history automatically persist and reload across browser refreshes.
 
 ### 3.3. Restaurant Admin Dashboard
 - **Real-Time Metrics:** Admins can view active orders, total revenue, and veg vs. non-veg breakdowns.

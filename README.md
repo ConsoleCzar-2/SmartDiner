@@ -22,12 +22,13 @@
 
 SmartDiner acts as a fully autonomous concierge for restaurants. Unlike traditional LLM wrappers that hallucinate prices or forget fatal allergies, SmartDiner strictly separates natural language understanding from deterministic business logic. It uses a **multi-layered governed AI pipeline**:
 
-1. **LLM Constraint Extraction:** Parses natural language ("5 people, 2 veg, under ₹3000") into strict JSON requirements using Gemini 3.5 Flash Lite.
-2. **SQL Deterministic Filter:** Hard-filters the menu at the database level to ensure 100% allergen safety. Unsafe items (e.g. cross-contamination triggers) never reach the AI.
-3. **ILP Optimization Solver:** Uses Integer Linear Programming (PuLP) to find the absolute mathematically optimal combination of dishes that satisfy the budget, dietary ratios, and party size.
-4. **Grounded Explanation:** The LLM summarizes the mathematically-verified cart back to the user in a natural, hallucination-free response.
+1. **Intent Classification:** Identifies if the user is asking a question, making an order, modifying an order, or being adversarial. Questions are instantly routed to a lightweight Q&A LLM, bypassing heavy math.
+2. **Context-Aware Extraction:** Parses natural language ("remove the paneer, add chicken, under ₹3000") into strict JSON requirements using Gemini 3.5 Flash Lite, maintaining awareness of the user's ongoing draft cart.
+3. **SQL Deterministic Filter:** Hard-filters the menu at the database level to ensure 100% allergen safety. Unsafe items (e.g. cross-contamination triggers) never reach the AI.
+4. **ILP Optimization Solver:** Uses Integer Linear Programming (PuLP) to find the absolute mathematically optimal combination of dishes that satisfy the budget, dietary ratios, party size, and requested dish swaps.
+5. **Grounded Explanation:** The LLM summarizes the mathematically-verified cart back to the user in a natural, hallucination-free response.
 
-This dual-engine architecture guarantees **100% safety and compliance** while maintaining conversational flexibility.
+This dual-engine architecture guarantees **100% safety and compliance** while maintaining conversational flexibility, live cart editing, and state persistence.
 
 ---
 

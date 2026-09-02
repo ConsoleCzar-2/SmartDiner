@@ -55,9 +55,11 @@ import { Plus, Minus } from "lucide-react";
 
 export function CartPanel({
     recommendation,
+    constraints,
     conversationId,
 }: {
     recommendation: RecommendationResult | null;
+    constraints?: any | null;
     conversationId?: string | null;
 }) {
     const [localRec, setLocalRec] = useState<RecommendationResult | null>(null);
@@ -107,6 +109,7 @@ export function CartPanel({
                 ...current,
                 items: updatedItems,
                 computed_total: newTotal,
+                budget_remaining: constraints?.max_budget ? constraints.max_budget - newTotal : null,
             };
         });
 
@@ -221,38 +224,54 @@ export function CartPanel({
                             {money(localRec.computed_total)}
                         </span>
                     </div>
-                    <div className="flex justify-between">
+                    {constraints?.max_budget && (
+                        <div className="flex justify-between">
+                            <span className="text-[#6d6257]">Total budget</span>
+                            <span className="font-bold text-zinc-500">
+                                {money(constraints.max_budget)}
+                            </span>
+                        </div>
+                    )}
+                    <div className="flex justify-between border-t border-dashed border-[#241f19]/20 pt-2">
                         <span className="text-[#6d6257]">Budget remaining</span>
-                        <span className="font-black text-emerald-700">
+                        <span className={`font-black ${localRec.budget_remaining && localRec.budget_remaining < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
                             {localRec.budget_remaining === null
                                 ? "—"
-                                : money(localRec.budget_remaining)}
+                                : (localRec.budget_remaining < 0 ? "-" + money(Math.abs(localRec.budget_remaining)) : money(localRec.budget_remaining))}
                         </span>
                     </div>
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="mt-4 grid grid-cols-4 gap-2">
                     <div className="rounded-xl bg-[#241f19]/5 p-2 text-center">
                         <Users className="mx-auto h-3.5 w-3.5" />
                         <p className="mt-1 text-lg font-black">
-                            {localRec.total_servings}
+                            {constraints?.people_count || 1}
                         </p>
                         <p className="text-[8px] font-bold uppercase tracking-[.12em] text-[#6d6257]">
-                            Servings
+                            People
                         </p>
                     </div>
                     <div className="rounded-xl bg-emerald-600/10 p-2 text-center">
                         <p className="text-lg font-black text-emerald-800">
-                            {localRec.veg_servings}
+                            {constraints?.vegetarian_count || 0}
                         </p>
                         <p className="text-[8px] font-bold uppercase tracking-[.12em] text-emerald-700">
                             Veg
                         </p>
                     </div>
-                    <div className="rounded-xl bg-[#f6a61d]/20 p-2 text-center">
-                        <p className="text-lg font-black">
-                            {localRec.nonveg_servings}
+                    <div className="rounded-xl bg-green-600/10 p-2 text-center">
+                        <p className="text-lg font-black text-green-800">
+                            {constraints?.vegan_count || 0}
                         </p>
-                        <p className="text-[8px] font-bold uppercase tracking-[.12em] text-[#6d6257]">
+                        <p className="text-[8px] font-bold uppercase tracking-[.12em] text-green-700">
+                            Vegan
+                        </p>
+                    </div>
+                    <div className="rounded-xl bg-rose-600/10 p-2 text-center">
+                        <p className="text-lg font-black text-rose-800">
+                            {constraints?.non_vegetarian_count || 0}
+                        </p>
+                        <p className="text-[8px] font-bold uppercase tracking-[.12em] text-rose-700">
                             Non-veg
                         </p>
                     </div>

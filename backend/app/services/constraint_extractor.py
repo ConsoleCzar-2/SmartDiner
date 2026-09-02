@@ -4,7 +4,7 @@ from app.schemas.constraints import ExtractedConstraints
 from app.prompts.constraint_extraction import SYSTEM_PROMPT
 from app.config import settings
 
-async def extract_constraints(user_message: str, conversation_history: list = None, existing_constraints: dict = None) -> ExtractedConstraints:
+async def extract_constraints(user_message: str, conversation_history: list = None, existing_constraints: dict = None, current_cart: list = None) -> ExtractedConstraints:
     """
     Extracts structured constraints from a natural language user message using Gemini.
     """
@@ -22,6 +22,9 @@ async def extract_constraints(user_message: str, conversation_history: list = No
             
     if existing_constraints:
         context += f"\nExisting Constraints (JSON):\n{json.dumps(existing_constraints, indent=2)}\n"
+        
+    if current_cart:
+        context += f"\nCurrent Draft Cart (User may have modified this):\n{json.dumps(current_cart, indent=2)}\n"
         
     if context:
         context += "\nCurrent Request:\n"

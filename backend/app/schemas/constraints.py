@@ -12,4 +12,5 @@ class ExtractedConstraints(BaseModel):
     preferred_cuisines: List[str] = Field(default_factory=list, description="List of preferred cuisines, e.g., ['North Indian', 'Chinese'].")
     preferred_categories: List[str] = Field(default_factory=list, description="List of preferred categories, e.g., ['Starter', 'Dessert'].")
     specific_dish_requests: List[str] = Field(default_factory=list, description="Names of specific dishes requested.")
+    excluded_dishes: List[str] = Field(default_factory=list, description="Names of specific dishes the user explicitly wants removed or excluded.")
     is_modification: bool = Field(default=False, description="True if the user is explicitly modifying a previous order/request.")
