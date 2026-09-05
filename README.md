@@ -78,6 +78,15 @@ npm install
 npm run dev
 ```
 
+### 5. Google Cloud Credentials (Optional, for GCS features)
+
+The `gcp-credentials.json` file in the repo root is **gitignored** and is only required if you want to exercise Google Cloud Storage features (image uploads, WORM audit-log retrieval). If you need it:
+
+- Place the service-account JSON at `gcp-credentials.json` (repo root) **or** anywhere else and set `GOOGLE_APPLICATION_CREDENTIALS_JSON` in your `.env` to its contents.
+- For local-only development you can skip this entirely — the backend will run fine without GCS, GCS-dependent endpoints will simply error out.
+
+> **Do not commit this file as well as the other environment variables.** It is in `.gitignore` for a reason. If you accidentally leak a service-account key, rotate it immediately in the GCP console.
+
 ### 4. Database Seeding
 To populate the database with sample restaurants, users, and rich menu items, run the data seeder:
 ```bash

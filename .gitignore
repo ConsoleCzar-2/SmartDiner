@@ -73,4 +73,4 @@ backend/export_local_db.py
 backend/import_to_render.py
 backend/seed_data_export.json
 
-.antigravityignore
+.agentignore

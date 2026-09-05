@@ -1,4 +1,4 @@
-"""Grounded explanation generator using Gemini 2.5 Flash (Pipeline Step 4)."""
+"""Grounded explanation generator using Gemini 3.5 Flash Lite (Pipeline Step 4)."""
 
 import json
 from google import genai

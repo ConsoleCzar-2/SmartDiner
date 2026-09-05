@@ -3,7 +3,8 @@ import pulp
 from app.schemas.constraints import ExtractedConstraints
 from app.models.menu_item import MenuItem
 
-def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem], nonveg_items: list[MenuItem], constraints: ExtractedConstraints) -> dict:
+def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem], 
+                  nonveg_items: list[MenuItem], constraints: ExtractedConstraints) -> dict:
     """
     Uses Integer Linear Programming (ILP) to find the optimal combination of menu items.
     Maximizes rating & serving efficiency while strictly obeying budget and dietary constraints.
