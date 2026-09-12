@@ -16,7 +16,20 @@ load_dotenv("../.env")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    # If running on Render (or anywhere without ADC), bootstrap GCS credentials from env
+    # If running on Render (or anywhere without ADC), bootstrap GCS credentials
+    if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+        candidates = [
+            "/etc/secrets/gcp-credentials.json",  # Render Secret File standard path
+            "gcp-credentials.json",
+            "../gcp-credentials.json",
+            os.path.join(os.getcwd(), "gcp-credentials.json"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "gcp-credentials.json"),
+        ]
+        for candidate in candidates:
+            if os.path.isfile(candidate):
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(candidate)
+                break
+
     creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
     if creds_json and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
         creds_path = os.path.join(tempfile.gettempdir(), "gcs-credentials.json")

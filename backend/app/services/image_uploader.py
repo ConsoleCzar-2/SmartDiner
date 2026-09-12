@@ -4,6 +4,7 @@ from fastapi import UploadFile, HTTPException
 from google.cloud import storage
 import logging
 from app.config import settings
+from app.services.gcs_client import get_storage_client
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ async def upload_image_to_gcs(
         loop = asyncio.get_running_loop()
 
         def _sync_upload():
-            client = storage.Client(project=settings.gcp_project_id if settings.gcp_project_id else None)
+            client = get_storage_client()
             bucket = client.bucket(settings.gcs_image_bucket_name)
             blob = bucket.blob(blob_name)
             

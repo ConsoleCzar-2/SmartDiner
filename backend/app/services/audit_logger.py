@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 from google.cloud import storage
 from app.config import settings
+from app.services.gcs_client import get_storage_client
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ async def upload_audit_log_to_gcs(
 
     def _sync_upload():
         try:
-            client = storage.Client(project=settings.gcp_project_id if settings.gcp_project_id else None)
+            client = get_storage_client()
             bucket = client.bucket(settings.gcs_audit_bucket_name)
             
             # Create a unique blob name using the conversation_id and a timestamp

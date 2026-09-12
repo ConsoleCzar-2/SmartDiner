@@ -126,6 +126,7 @@ async def get_audit_logs(
 ):
     from google.cloud import storage
     from app.config import settings
+    from app.services.gcs_client import get_storage_client
     import json
     
     # 1. Verify RBAC & Ownership
@@ -141,7 +142,7 @@ async def get_audit_logs(
         
     # 2. Fetch from GCS
     try:
-        client = storage.Client(project=settings.gcp_project_id if settings.gcp_project_id else None)
+        client = get_storage_client()
         bucket = client.bucket(settings.gcs_audit_bucket_name)
         
         # List all blobs in this conversation's folder

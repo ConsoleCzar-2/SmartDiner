@@ -7,6 +7,7 @@ from google import genai
 from google.cloud import storage
 
 from app.config import settings
+from app.services.gcs_client import get_storage_client
 from app.models.admin_user import AdminUser
 from app.models.restaurant import Restaurant
 from app.models.menu_item import MenuItem
@@ -198,7 +199,7 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
     scoped_rest_id = str(admin_user.restaurant_id) if is_scoped else None
 
     try:
-        client = storage.Client(project=settings.gcp_project_id if settings.gcp_project_id else None)
+        client = get_storage_client()
         bucket = client.bucket(settings.gcs_audit_bucket_name)
         
         # Read latest 40 blobs
