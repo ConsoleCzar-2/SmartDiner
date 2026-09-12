@@ -318,3 +318,25 @@ def test_anti_monopoly_caps_on_beverages_and_sides():
     assert total_drinks <= 2, f"Beverages should not exceed total_people (2), got {total_drinks}"
     assert total_sides <= 1, f"Sides should not exceed ceil(total_people/2) (1), got {total_sides}"
 
+
+def test_optimizer_heavily_filtered_small_menu_group_order():
+    """Verify that a 7-person party can be successfully fed even when strict allergen/cuisine filters leave only 3 items."""
+    starter = create_mock_item("Bruschetta", "Starter", 230.0, "Vegan", 1, 4.4)
+    main = create_mock_item("Spaghetti Bolognese", "Main Course", 440.0, "Non-Vegetarian", 1, 4.6)
+    drink = create_mock_item("Espresso", "Beverage", 120.0, "Vegan", 1, 4.1)
+
+    constraints = ExtractedConstraints(
+        people_count=7,
+        vegetarian_count=0,
+        vegan_count=0,
+        non_vegetarian_count=7,
+        max_budget=4000.0,
+    )
+    result = optimize_menu([], [starter, drink], [main], constraints)
+    assert result["status"] == "Optimal"
+    assert result["total_cost"] <= 4000.0
+    assert result["total_servings"] >= 7
+    categories = set(entry["item"].category for entry in result["items"])
+    assert "Starter" in categories
+    assert "Main Course" in categories
+

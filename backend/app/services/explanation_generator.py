@@ -48,12 +48,18 @@ async def generate_explanation(solver_output: dict, constraints: ExtractedConstr
 
     # Handle infeasible case
     if solver_output["status"] != "Optimal":
+        rationale = solver_output.get("decision_rationale", {})
+        items_considered = rationale.get("items_considered", 0)
         context_block = (
             f"STATUS: Infeasible\n"
-            f"REASON: {solver_output.get('reason', 'Unknown')}\n\n"
+            f"DIAGNOSTIC_REASON: {solver_output.get('reason', 'Unknown')}\n\n"
             f"USER_CONSTRAINTS:\n"
             f"People: {constraints.people_count}\n"
             f"Budget: {'₹' + str(constraints.max_budget) if constraints.max_budget else 'No limit'}\n"
+            f"Excluded Allergens: {', '.join(constraints.excluded_allergens) if constraints.excluded_allergens else 'None'}\n"
+            f"Max Spice Level: {constraints.max_spice_level or 'Any'}\n"
+            f"Preferred Cuisines: {', '.join(constraints.preferred_cuisines) if constraints.preferred_cuisines else 'Any'}\n"
+            f"Candidate Items Matching Filters: {items_considered}\n"
         )
 
     client = genai.Client(api_key=settings.gemini_api_key)

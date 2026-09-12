@@ -11,24 +11,33 @@ This report documents the verification and quality benchmarking of the SmartDine
 
 ---
 
-## 2. Integer Linear Programming (ILP) Solver Verification
+## 2. Integer Linear Programming (ILP) Solver Verification & Dietary Semantics
 
-The PuLP CBC solver was tested across 10 deterministic test suites (`backend/tests/test_optimizer.py`).
+The PuLP CBC solver and dietary semantics engine were tested across 17 deterministic test suites (`backend/tests/test_optimizer.py` and `backend/tests/test_dietary_semantics.py`).
 
 | Test Suite | Scenario | Expected Outcome | Result |
 |---|---|---|---|
-| `test_basic_optimal_selection` | 2 people, 1000 INR budget | Total <= 1000, Servings >= 2 | [PASS] |
-| `test_strict_budget_enforcement` | 4 people, 600 INR budget | Total <= 600, Servings >= 4 | [PASS] |
-| `test_vegetarian_serving_ratio` | 5 people, 3 veg, 2 non-veg | Veg Servings >= 3, Non-Veg Servings >= 2 | [PASS] |
-| `test_vegan_serving_ratio` | 4 people, 2 vegan, 2 non-veg | Vegan Servings >= 2 | [PASS] |
-| `test_infeasible_budget_low` | 20 people, 100 INR budget | Returns `status="Infeasible"` gracefully | [PASS] |
-| `test_excluded_dishes_honored` | Explicit exclusion of specific dish | Quantity of excluded dish is exactly 0 | [PASS] |
-| `test_preferred_category_boost` | Preference for Desserts & Starters | Selected menu includes preferred categories | [PASS] |
-| `test_category_diversity_bonus` | Group meal with diversity incentive | Distinct categories selected >= 2 | [PASS] |
-| `test_soft_meal_structure_penalties` | Party >= 3 with sufficient budget | Allocates Starter, Main, and Beverage/Dessert | [PASS] |
-| `test_anti_monopoly_carb_caps` | 2 people ordering staples | Bread/rice quantity capped <= ceil(2 * 1.5) = 3 | [PASS] |
+| `test_optimizer_respects_budget` | 2 people, 1000 INR budget | Total <= 1000, Servings >= 2 | [PASS] |
+| `test_optimizer_meets_serving_requirements` | 4 people, 600 INR budget | Total <= 600, Servings >= 4 | [PASS] |
+| `test_optimizer_vegetarian_constraint` | 5 people, 3 veg, 2 non-veg | Veg Servings >= 3, Non-Veg Servings >= 2 | [PASS] |
+| `test_optimizer_non_vegetarian_constraint` | 4 people, 2 veg, 2 non-veg | Non-Veg Servings >= 2 | [PASS] |
+| `test_optimizer_infeasible_budget` | 20 people, 100 INR budget | Returns `status="Infeasible"` gracefully | [PASS] |
+| `test_optimizer_empty_menu` | Empty menu candidates | Returns `status="Infeasible"` gracefully | [PASS] |
+| `test_specific_dish_request` | Explicit request for specific dish | Quantity of requested dish is >= 1 | [PASS] |
+| `test_excluded_dishes` | Explicit exclusion of specific dish | Quantity of excluded dish is exactly 0 | [PASS] |
+| `test_preferred_categories` | Preference for Desserts & Starters | Selected menu includes preferred categories | [PASS] |
+| `test_large_party_meal_structure` | Party >= 3 with sufficient budget | Allocates Starter, Main, and Beverage/Dessert | [PASS] |
+| `test_optimizer_decision_rationale_structure` | Any optimal solve | Validates complete rationale schema | [PASS] |
+| `test_strictly_vegan_party` | 2 vegan diners, no non-veg/veg | 100% of items are Vegan | [PASS] |
+| `test_mixed_vegan_and_vegetarian_party` | 3 diners (2 veg, 1 vegan) | Vegetarian & Vegan items only, zero non-veg | [PASS] |
+| `test_dinner_for_two_prioritizes_main_course` | 2 people ordering dinner | Main Course prioritized over cheaper sides | [PASS] |
+| `test_preferred_category_strictly_enforces_category` | Preference for Main Course | Physically selects Main Course dish | [PASS] |
+| `test_anti_monopoly_caps_on_beverages_and_sides` | Party of 2 with cheap sides/drinks | Beverages <= 2, Sides <= 1 | [PASS] |
+| `test_vegetarian_accepts_vegan_dishes` | Vegetarian diner queries menu | Receives both vegetarian and vegan dishes | [PASS] |
+| `test_vegan_strictly_rejects_vegetarian` | Vegan diner queries menu | Never receives dairy/vegetarian dishes | [PASS] |
 
-**Unit Test Status:** 10 / 10 PASSED (100%)
+**Unit Test Status:** 18 / 18 PASSED (100%)
+**Full Backend Test Suite:** 44 / 44 PASSED (100%)
 
 ---
 

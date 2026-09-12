@@ -55,7 +55,9 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem],
         }
 
     total_people = constraints.people_count or 1
-    max_qty_per_dish = max(2, math.ceil(total_people / 3.0))
+    # Adjust max_qty_per_dish dynamically based on available menu diversity
+    div = min(max(1, len(all_items)), 3.0)
+    max_qty_per_dish = max(2, math.ceil(total_people / div))
 
     veg_people = constraints.vegetarian_count or 0
     vegan_people = constraints.vegan_count or 0
@@ -150,10 +152,13 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem],
     if vegan_people > 0:
         prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in vegan_items]) >= vegan_people, "VeganServingsConstraint"
 
-    if nonveg_people > 0:
-        prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in nonveg_items]) >= nonveg_people, "NonVegServingsConstraint"
-    else:
-        # HARD GUARDRAIL: If 0 non-veg people, force non-veg items to 0
+    max_nonveg_cap = sum(max_qty_per_dish * item.serving_size for item in nonveg_items)
+    req_nonveg = min(nonveg_people, max_nonveg_cap)
+
+    if req_nonveg > 0:
+        prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in nonveg_items]) >= req_nonveg, "NonVegServingsConstraint"
+    elif (veg_people > 0 or vegan_people > 0) and nonveg_people == 0:
+        # HARD GUARDRAIL: Only force non-veg items to 0 if the party explicitly requested veg/vegan and 0 non-veg
         for item in nonveg_items:
             prob += item_vars[item.id] == 0, f"ForceZeroNonVeg_{str(item.id).replace('-', '_')}"
 
@@ -263,9 +268,15 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem],
     }
 
     if status_str != "Optimal":
+        if len(all_items) < min_categories:
+            diag_reason = f"Only {len(all_items)} dish(es) matched your filters, but at least {min_categories} categories were required."
+        elif constraints.max_budget and float(constraints.max_budget) < 150 * total_people:
+            diag_reason = "The specified budget appears too tight to satisfy the group size."
+        else:
+            diag_reason = "Strict filtering (allergens, spice ceiling, cuisine) left too few eligible dishes to satisfy meal courses and group portions."
         return {
             "status": status_str,
-            "reason": "Could not find a mathematically possible combination. The budget might be too tight, or conflicting dietary/specific dish requests.",
+            "reason": diag_reason,
             "items": [],
             "total_cost": 0.0,
             "total_servings": 0,

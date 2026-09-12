@@ -65,3 +65,28 @@ This document records the 10 most critical architectural and engineering decisio
 **Decision:** Implemented universal markdown rendering via `frontend/src/components/ui/markdown-content.tsx` while enforcing a strict zero-emoji policy across all system prompts and generated outputs.
 **Rationale:** Emojis degrade the professional quality of enterprise audit logs and executive business intelligence reports, while creating token overhead and parsing inconsistencies. Structured markdown (tables, lists, bold highlights) delivers maximum clarity for both diner recommendations and admin operational insights.
 
+## 16. Mathematical ILP Course Structure Optimization & Anti-Monopoly Guarantees
+**Decision:** We upgraded `backend/app/services/optimizer.py` with:
+1. **Bidirectional Category Coupling (`LinkCatMin` & `LinkCatMax`):** Enforcing $\sum x_i \ge c_{\text{cat}}$ so category indicators cannot be activated without purchasing food.
+2. **Direct Dish-Level Preferred Category Enforcement:** Directly enforcing $\sum_{i \in \text{pref}} x_i \ge 1$ with dietary filtering instead of only boosting binary category indicators.
+3. **Universal Meal Course Structure (`SoftMainReq`):** Penalizing skipped main courses by 30.0 points across all dining group sizes ($\ge 1$ person).
+4. **Anti-Monopoly Caps on Non-Main Items:** Restricting beverages to `total_people`, sides to $\lceil \text{total\_people} / 2 \rceil$, and desserts to $\lceil \text{total\_people} / 2 \rceil$.
+**Rationale:** In menu catalogs where beverages or sides have identical ratings (e.g. 4.0) to main courses but cost less than half the price, linear solvers will exploit cost-efficiency by purchasing multiple drinks and sides rather than a main course. Adding bidirectional indicator bounds, anti-monopoly caps, and universal main course priority guarantees balanced, real-world dining orders.
+
+## 17. Multi-Cloud Resilient Credential Resolution for WORM Audit Logs
+**Decision:** Centralized Google Cloud Storage client initialization in `backend/app/services/gcs_client.py` using `get_storage_client()`, which auto-detects credentials across Render Secret Files (`/etc/secrets/gcp-credentials.json`), local JSON files, raw environment strings, and GCP ADC.
+**Rationale:** External hosting environments like Render do not have access to Google Compute Engine internal metadata servers. Hardcoding expectation of a single environment variable led to runtime authentication failures. Automatically resolving credentials across standard cloud mount paths guarantees resilient zero-config deployments.
+
+## 18. Semantic Dietary Hierarchy (Vegan as Strict Subset of Vegetarian)
+**Decision:** Formalized that vegetarian diners can be served vegan food, but vegan diners strictly cannot receive non-vegan vegetarian items.
+**Rationale:** All 100% plant-based vegan dishes satisfy vegetarian dietary laws, providing greater culinary variety and budget flexibility for vegetarian diners. Conversely, vegetarian dishes containing dairy, eggs, cheese, or honey are strictly prohibited for vegan diners to maintain 100% compliance.
+
+## 19. Adaptive Menu-Depth ILP Bounds and Non-Vegetarian Quota Decoupling
+**Decision:** In `backend/app/services/optimizer.py`, we:
+1. Dynamically calibrated dish portion limits (`max_qty_per_dish`) based on remaining candidate items: `div = min(max(1, len(all_items)), 3.0)` so small, heavily filtered menus (e.g. 1-3 surviving dishes) allow ordering sufficient portions to feed large parties.
+2. Capped the non-vegetarian serving requirement to available non-vegetarian capacity: `req_nonveg = min(nonveg_people, max_nonveg_cap)`, preventing mathematical deadlocks when allergen/cuisine filters leave fewer non-veg servings than the party size.
+3. Guarded non-veg item bans (`ForceZeroNonVeg`) so they only trigger if the party explicitly requested vegetarian/vegan options and zero non-veg (`(veg_people > 0 or vegan_people > 0) and nonveg_people == 0`). Unconstrained diners ("open to any dish") are no longer treated as strictly vegetarian.
+4. Grounded infeasibility telemetry in actual constraint bottlenecks (candidate item counts, allergen/cuisine filters) rather than defaulting to budget advice.
+**Rationale:** In specialized cuisines with pervasive allergens (e.g. Italian menus where 80%+ of dishes contain dairy), combining allergen exclusions with spice ceilings and cuisine filters decimated candidate items down to 3 dishes. Forcing an omnivorous party to order 7 meat servings when only 1 meat dish survived with a cap of 3 portions resulted in an unavoidable mathematical infeasibility regardless of budget (even up to ₹50,000). Decoupling non-veg quotas to available capacity and adapting portion caps ensures robust recommendations across all menu depths.
+
+

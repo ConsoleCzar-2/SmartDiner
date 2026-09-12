@@ -85,7 +85,7 @@ npm run dev
 ```
 
 ### 4. Database Seeding & Migration
-To reset and populate the database with the 6 authentic restaurants (Spice Garden, Dragon's Wok, The Grand Kitchen, South Spice Heritage, Tokyo Umami, Green Haven Cafe) and 99 unique dishes:
+To reset and populate the database with the 6 authentic restaurants (Spice Garden, Dragon's Wok, The Grand Kitchen, South Spice Heritage, Tokyo Umami, Green Haven Cafe) and 104 unique dishes:
 ```bash
 cd backend
 
@@ -101,10 +101,11 @@ python -m seed.seed_render --url="postgresql://<USER>:<PASSWORD>@<HOST>.render.c
 
 ### 5. Google Cloud Credentials (Optional, for GCS features)
 
-The `gcp-credentials.json` file in the repo root is **gitignored** and is only required if you want to exercise Google Cloud Storage features (image uploads, WORM audit-log retrieval). If you need it:
+The `gcp-credentials.json` file in the repo root is **gitignored** and is only required if you want to exercise Google Cloud Storage features (image uploads, WORM audit-log retrieval). The backend (`backend/app/services/gcs_client.py`) automatically resolves credentials across environments:
 
-- Place the service-account JSON at `gcp-credentials.json` (repo root) **or** anywhere else and set `GOOGLE_APPLICATION_CREDENTIALS_JSON` in your `.env` to its contents.
-- For local-only development you can skip this entirely — the backend will run fine without GCS, GCS-dependent endpoints will simply error out.
+- **Local Development:** Place the service-account JSON at `gcp-credentials.json` (repo root) or set `GOOGLE_APPLICATION_CREDENTIALS` in your `.env`.
+- **Render Production:** Upload the file as a Render Secret File named `gcp-credentials.json` (automatically mounted and detected at `/etc/secrets/gcp-credentials.json`).
+- **Raw Environment String:** Alternatively, set `GOOGLE_APPLICATION_CREDENTIALS_JSON` to the raw JSON string contents.
 
 > **Do not commit this file as well as the other environment variables.** It is in `.gitignore` for a reason. If you accidentally leak a service-account key, rotate it immediately in the GCP console.
 
