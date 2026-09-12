@@ -33,15 +33,50 @@ export async function sendChatMessage(payload: ChatRequest): Promise<ChatRespons
     return response.json() as Promise<ChatResponse>;
 }
 
-export async function fetchActiveChat(restaurantId: string): Promise<any> {
+export async function fetchActiveChat(restaurantId?: string | null): Promise<any> {
     const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
     if (!token) return null;
     
-    const response = await fetch(`${API_BASE_URL}/api/chat/active?restaurant_id=${restaurantId}`, {
+    const url = restaurantId 
+        ? `${API_BASE_URL}/api/chat/active?restaurant_id=${restaurantId}`
+        : `${API_BASE_URL}/api/chat/active`;
+    const response = await fetch(url, {
         headers: { "Authorization": `Bearer ${token}` }
     });
     if (!response.ok) {
         return null; // Return null if it fails, maybe token expired or no active chat
+    }
+    return response.json();
+}
+
+export async function abandonActiveChat(conversationId?: string | null): Promise<boolean> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
+    if (!token) return false;
+    
+    const url = conversationId 
+        ? `${API_BASE_URL}/api/chat/abandon?conversation_id=${conversationId}`
+        : `${API_BASE_URL}/api/chat/abandon`;
+        
+    const response = await fetch(url, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    return response.ok;
+}
+
+export async function sendAdminInsightChat(message: string): Promise<any> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+    const response = await fetch(`${API_BASE_URL}/api/admin/insights/chat`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ message })
+    });
+    if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        throw new Error(detail || `Admin insight request failed (${response.status})`);
     }
     return response.json();
 }

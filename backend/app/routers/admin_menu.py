@@ -12,6 +12,7 @@ from app.models.allergen import Allergen
 from app.services.auth import get_current_admin_user
 from app.services.image_uploader import upload_image_to_gcs
 from app.routers.menu import MENU_CACHE
+from app.services.menu_filter import clear_menu_filter_cache
 from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/api/admin", tags=["admin_menu"])
@@ -99,6 +100,7 @@ async def create_menu_item(
     
     # Evict cache
     MENU_CACHE.pop(restaurant_id, None)
+    clear_menu_filter_cache(restaurant_id)
     
     return new_item
 
@@ -158,6 +160,7 @@ async def update_menu_item(
     
     # Evict cache
     MENU_CACHE.pop(restaurant_id, None)
+    clear_menu_filter_cache(restaurant_id)
     
     return menu_item
 
@@ -182,5 +185,6 @@ async def delete_menu_item(
     
     # Evict cache
     MENU_CACHE.pop(restaurant_id, None)
+    clear_menu_filter_cache(restaurant_id)
     
     return {"message": "Menu item deleted"}

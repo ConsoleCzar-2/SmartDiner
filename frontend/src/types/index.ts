@@ -1,8 +1,9 @@
 export interface ChatRequest {
     message: string;
-    restaurant_id: string;
+    restaurant_id: string | null;
     conversation_id: string | null;
 }
+
 export interface RecommendedItem {
     id: string;
     name: string;
@@ -16,6 +17,7 @@ export interface RecommendedItem {
     total_servings: number;
     image_url?: string | null;
 }
+
 export interface RecommendationResult {
     status: "Optimal" | "Infeasible" | string;
     reason: string;
@@ -24,8 +26,11 @@ export interface RecommendationResult {
     budget_remaining: number | null;
     total_servings: number;
     veg_servings: number;
+    vegan_servings?: number;
     nonveg_servings: number;
+    decision_rationale?: any;
 }
+
 export interface ExtractedConstraints {
     people_count?: number | null;
     vegetarian_count?: number | null;
@@ -37,12 +42,32 @@ export interface ExtractedConstraints {
     dietary_preferences?: string[];
     [key: string]: unknown;
 }
+
+export interface CandidateComparison {
+    restaurant_id: string;
+    restaurant_name: string;
+    cuisine?: string;
+    sample_dish?: string;
+    starting_price?: number;
+}
+
+export interface CrossRestaurantMeta {
+    status: string;
+    is_cross_restaurant?: boolean;
+    comparison_summary?: string;
+    candidates?: CandidateComparison[];
+}
+
 export interface ChatResponse {
     conversation_id: string | null;
+    restaurant_id?: string | null;
+    restaurant_name?: string | null;
     recommendation: RecommendationResult;
     explanation: string;
     extracted_constraints: ExtractedConstraints;
+    cross_restaurant_meta?: CrossRestaurantMeta | null;
 }
+
 export interface ConversationMessage {
     id: string;
     role: "user" | "assistant" | "system";
@@ -55,4 +80,11 @@ export interface RestaurantResponse {
     name: string;
     cuisine_type: string | null;
     image_url: string | null;
+}
+
+export interface AdminChatResponse {
+    answer: string;
+    target_source: string;
+    data_sources: string[];
+    metrics_summary?: any;
 }

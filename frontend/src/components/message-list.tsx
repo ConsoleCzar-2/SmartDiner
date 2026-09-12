@@ -3,6 +3,7 @@
 import { Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import type { ConversationMessage } from "@/types";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 
 interface MessageListProps {
     messages: ConversationMessage[];
@@ -29,7 +30,10 @@ export function MessageList({ messages, isLoading, error }: MessageListProps) {
                             <Sparkles className="h-3 w-3" /> verified explanation
                         </span>
                     )}
-                    {message.content}
+                    <MarkdownContent 
+                        content={message.content} 
+                        variant={message.role === "user" ? "user" : "assistant"} 
+                    />
                 </motion.div>
             ))}
             {isLoading && (

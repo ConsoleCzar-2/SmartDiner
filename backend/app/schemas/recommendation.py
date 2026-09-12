@@ -7,7 +7,7 @@ from app.schemas.constraints import ExtractedConstraints
 class ChatRequest(BaseModel):
     """Incoming chat message from the user."""
     message: str = Field(..., description="The user's natural language message.")
-    restaurant_id: UUID = Field(..., description="UUID of the target restaurant.")
+    restaurant_id: Optional[UUID] = Field(default=None, description="UUID of the target restaurant. If None, system auto-resolves or performs cross-restaurant search.")
     conversation_id: Optional[UUID] = Field(default=None, description="Existing conversation ID for multi-turn chats. None for new conversations.")
 
 
@@ -37,12 +37,15 @@ class RecommendationResult(BaseModel):
     veg_servings: int = Field(default=0)
     vegan_servings: int = Field(default=0)
     nonveg_servings: int = Field(default=0)
-    decision_rationale: Optional[dict] = Field(default=None, description="Raw math bounds used by the solver")
+    decision_rationale: Optional[dict] = Field(default=None, description="Raw math bounds and telemetry used by the solver")
 
 
 class ChatResponse(BaseModel):
     """Complete API response for the /api/chat endpoint."""
     conversation_id: Optional[UUID] = Field(default=None, description="Conversation UUID for multi-turn follow-ups.")
+    restaurant_id: Optional[UUID] = Field(default=None, description="Resolved or recommended restaurant ID.")
+    restaurant_name: Optional[str] = Field(default=None, description="Resolved or recommended restaurant name.")
     recommendation: RecommendationResult
     explanation: str = Field(..., description="Brief, LLM-generated friendly summary of the recommendation.")
     extracted_constraints: ExtractedConstraints = Field(..., description="The structured constraints parsed from the user's message.")
+    cross_restaurant_meta: Optional[dict] = Field(default=None, description="Cross-restaurant comparison and finalization metadata.")

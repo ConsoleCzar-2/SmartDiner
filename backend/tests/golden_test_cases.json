@@ -1,0 +1,501 @@
+[
+  {
+    "id": "tc_01",
+    "category": "Basic Group & Budget",
+    "input_message": "Order food for 4 people with a budget of 2000 INR.",
+    "expected": {
+      "people_count": 4,
+      "max_budget": 2000.0
+    }
+  },
+  {
+    "id": "tc_02",
+    "category": "Basic Group & Budget",
+    "input_message": "Food for 2 people, budget 800.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 800.0
+    }
+  },
+  {
+    "id": "tc_03",
+    "category": "Basic Group & Budget",
+    "input_message": "Table of 6, maximum spend 3500 rupees.",
+    "expected": {
+      "people_count": 6,
+      "max_budget": 3500.0
+    }
+  },
+  {
+    "id": "tc_04",
+    "category": "Basic Group & Budget",
+    "input_message": "Dinner for 1 person under 500 rs.",
+    "expected": {
+      "people_count": 1,
+      "max_budget": 500.0
+    }
+  },
+  {
+    "id": "tc_05",
+    "category": "Basic Group & Budget",
+    "input_message": "Party of 10, total budget is 5000.",
+    "expected": {
+      "people_count": 10,
+      "max_budget": 5000.0
+    }
+  },
+  {
+    "id": "tc_06",
+    "category": "Dietary Split",
+    "input_message": "We are 5 people, 2 vegetarians and 3 non-vegetarians. Budget 2500.",
+    "expected": {
+      "people_count": 5,
+      "vegetarian_count": 2,
+      "non_vegetarian_count": 3,
+      "max_budget": 2500.0
+    }
+  },
+  {
+    "id": "tc_07",
+    "category": "Dietary Split",
+    "input_message": "4 people dining, all of us are vegetarian, budget 1800.",
+    "expected": {
+      "people_count": 4,
+      "vegetarian_count": 4,
+      "non_vegetarian_count": 0,
+      "max_budget": 1800.0
+    }
+  },
+  {
+    "id": "tc_08",
+    "category": "Dietary Split",
+    "input_message": "3 people, 1 strictly vegan and 2 non-veg. Budget 1500.",
+    "expected": {
+      "people_count": 3,
+      "vegan_count": 1,
+      "non_vegetarian_count": 2,
+      "max_budget": 1500.0
+    }
+  },
+  {
+    "id": "tc_09",
+    "category": "Dietary Split",
+    "input_message": "Strictly non-veg dinner for 2 people, budget 1200.",
+    "expected": {
+      "people_count": 2,
+      "vegetarian_count": 0,
+      "non_vegetarian_count": 2,
+      "max_budget": 1200.0
+    }
+  },
+  {
+    "id": "tc_10",
+    "category": "Dietary Split",
+    "input_message": "Group of 6: 2 veg, 1 vegan, 3 non-veg. Budget 3000.",
+    "expected": {
+      "people_count": 6,
+      "vegetarian_count": 2,
+      "vegan_count": 1,
+      "non_vegetarian_count": 3,
+      "max_budget": 3000.0
+    }
+  },
+  {
+    "id": "tc_11",
+    "category": "Allergens",
+    "input_message": "Food for 3 people, budget 1500. One person has a severe peanut allergy.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 1500.0,
+      "excluded_allergens": ["Peanuts"]
+    }
+  },
+  {
+    "id": "tc_12",
+    "category": "Allergens",
+    "input_message": "No dairy please, I am lactose intolerant. Meal for 1 under 600.",
+    "expected": {
+      "people_count": 1,
+      "max_budget": 600.0,
+      "excluded_allergens": ["Dairy"]
+    }
+  },
+  {
+    "id": "tc_13",
+    "category": "Allergens",
+    "input_message": "2 people, budget 1000. No gluten and no nuts.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 1000.0,
+      "excluded_allergens": ["Gluten", "Tree Nuts"]
+    }
+  },
+  {
+    "id": "tc_14",
+    "category": "Allergens",
+    "input_message": "Dinner for 4, budget 2000. Exclude shellfish and seafood.",
+    "expected": {
+      "people_count": 4,
+      "max_budget": 2000.0,
+      "excluded_allergens": ["Shellfish", "Fish"]
+    }
+  },
+  {
+    "id": "tc_15",
+    "category": "Allergens",
+    "input_message": "We are allergic to eggs and soy. Meal for 3 under 1400.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 1400.0,
+      "excluded_allergens": ["Eggs", "Soy"]
+    }
+  },
+  {
+    "id": "tc_16",
+    "category": "Spice Preference",
+    "input_message": "Dinner for 2, budget 1000, keep it completely non-spicy.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 1000.0,
+      "max_spice_level": "None"
+    }
+  },
+  {
+    "id": "tc_17",
+    "category": "Spice Preference",
+    "input_message": "Food for 4, budget 2000. Mild spice only.",
+    "expected": {
+      "people_count": 4,
+      "max_budget": 2000.0,
+      "max_spice_level": "Low"
+    }
+  },
+  {
+    "id": "tc_18",
+    "category": "Spice Preference",
+    "input_message": "Order for 3 people with medium spice, budget 1500.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 1500.0,
+      "max_spice_level": "Medium"
+    }
+  },
+  {
+    "id": "tc_19",
+    "category": "Spice Preference",
+    "input_message": "Give us something very spicy! 2 people, budget 800.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 800.0,
+      "max_spice_level": "High"
+    }
+  },
+  {
+    "id": "tc_20",
+    "category": "Spice Preference",
+    "input_message": "Extreme spicy food for 1 person, budget 400.",
+    "expected": {
+      "people_count": 1,
+      "max_budget": 400.0,
+      "max_spice_level": "Extreme"
+    }
+  },
+  {
+    "id": "tc_21",
+    "category": "Dish Mentions & Exclusions",
+    "input_message": "Order for 4 people under 2000. Must include chicken biryani.",
+    "expected": {
+      "people_count": 4,
+      "max_budget": 2000.0,
+      "specific_dish_requests": ["chicken biryani"]
+    }
+  },
+  {
+    "id": "tc_22",
+    "category": "Dish Mentions & Exclusions",
+    "input_message": "We want paneer tikka and butter naan for 2 people, budget 900.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 900.0,
+      "specific_dish_requests": ["paneer tikka", "butter naan"]
+    }
+  },
+  {
+    "id": "tc_23",
+    "category": "Dish Mentions & Exclusions",
+    "input_message": "3 people, budget 1500, but do not include mushrooms.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 1500.0,
+      "excluded_dishes": ["mushrooms"]
+    }
+  },
+  {
+    "id": "tc_24",
+    "category": "Dish Mentions & Exclusions",
+    "input_message": "Dinner for 2, budget 1200. We hate sweet dishes, no desserts.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 1200.0,
+      "excluded_categories": ["Dessert"]
+    }
+  },
+  {
+    "id": "tc_25",
+    "category": "Dish Mentions & Exclusions",
+    "input_message": "Feed 3 people under 1500 with dal makhani, but no rice.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 1500.0,
+      "specific_dish_requests": ["dal makhani"],
+      "excluded_categories": ["Rice"]
+    }
+  },
+  {
+    "id": "tc_26",
+    "category": "Colloquial Quantities",
+    "input_message": "Me and my girlfriend want dinner, budget 1000.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 1000.0
+    }
+  },
+  {
+    "id": "tc_27",
+    "category": "Colloquial Quantities",
+    "input_message": "Just a couple of us eating, budget 800.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 800.0
+    }
+  },
+  {
+    "id": "tc_28",
+    "category": "Colloquial Quantities",
+    "input_message": "Solo dinner tonight, keep it under 400 rs.",
+    "expected": {
+      "people_count": 1,
+      "max_budget": 400.0
+    }
+  },
+  {
+    "id": "tc_29",
+    "category": "Colloquial Quantities",
+    "input_message": "Myself and 3 colleagues, budget 2000 total.",
+    "expected": {
+      "people_count": 4,
+      "max_budget": 2000.0
+    }
+  },
+  {
+    "id": "tc_30",
+    "category": "Colloquial Quantities",
+    "input_message": "A trio of friends having lunch, budget around 1200.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 1200.0
+    }
+  },
+  {
+    "id": "tc_31",
+    "category": "Cuisine Preferences",
+    "input_message": "We want North Indian food for 4 people, budget 2200.",
+    "expected": {
+      "people_count": 4,
+      "max_budget": 2200.0,
+      "preferred_cuisines": ["North Indian"]
+    }
+  },
+  {
+    "id": "tc_32",
+    "category": "Cuisine Preferences",
+    "input_message": "Craving Chinese for 2 people, budget 1000.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 1000.0,
+      "preferred_cuisines": ["Chinese"]
+    }
+  },
+  {
+    "id": "tc_33",
+    "category": "Cuisine Preferences",
+    "input_message": "Italian dinner for 2, budget 1400.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 1400.0,
+      "preferred_cuisines": ["Italian"]
+    }
+  },
+  {
+    "id": "tc_34",
+    "category": "Cuisine Preferences",
+    "input_message": "South Indian meal for 3 people, budget 800.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 800.0,
+      "preferred_cuisines": ["South Indian"]
+    }
+  },
+  {
+    "id": "tc_35",
+    "category": "Complex Multi-Constraint",
+    "input_message": "5 people, budget 2500, 2 vegetarians, no nuts, medium spice, North Indian.",
+    "expected": {
+      "people_count": 5,
+      "vegetarian_count": 2,
+      "non_vegetarian_count": 3,
+      "max_budget": 2500.0,
+      "excluded_allergens": ["Tree Nuts"],
+      "max_spice_level": "Medium",
+      "preferred_cuisines": ["North Indian"]
+    }
+  },
+  {
+    "id": "tc_36",
+    "category": "Complex Multi-Constraint",
+    "input_message": "Dinner for 4 with 2000 INR budget. One vegan, three non-veg, strictly no dairy.",
+    "expected": {
+      "people_count": 4,
+      "vegan_count": 1,
+      "non_vegetarian_count": 3,
+      "max_budget": 2000.0,
+      "excluded_allergens": ["Dairy"]
+    }
+  },
+  {
+    "id": "tc_37",
+    "category": "Complex Multi-Constraint",
+    "input_message": "Table of 6, budget 3600. All veg, Jain food only (no onions/garlic), mild spice.",
+    "expected": {
+      "people_count": 6,
+      "vegetarian_count": 6,
+      "max_budget": 3600.0,
+      "max_spice_level": "Low"
+    }
+  },
+  {
+    "id": "tc_38",
+    "category": "Complex Multi-Constraint",
+    "input_message": "Party of 8, budget 5000. 4 veg, 4 non-veg, must have biryani, exclude shellfish.",
+    "expected": {
+      "people_count": 8,
+      "vegetarian_count": 4,
+      "non_vegetarian_count": 4,
+      "max_budget": 5000.0,
+      "specific_dish_requests": ["biryani"],
+      "excluded_allergens": ["Shellfish"]
+    }
+  },
+  {
+    "id": "tc_39",
+    "category": "Edge Cases",
+    "input_message": "Food for 5 people. Money is no object, surprise us!",
+    "expected": {
+      "people_count": 5
+    }
+  },
+  {
+    "id": "tc_40",
+    "category": "Edge Cases",
+    "input_message": "Very tight budget, 3 people with only 600 INR total.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 600.0
+    }
+  },
+  {
+    "id": "tc_41",
+    "category": "Edge Cases",
+    "input_message": "Can you order something light for 1 person?",
+    "expected": {
+      "people_count": 1
+    }
+  },
+  {
+    "id": "tc_42",
+    "category": "Course Preferences",
+    "input_message": "Just drinks and desserts for 4 people, budget 1000.",
+    "expected": {
+      "people_count": 4,
+      "max_budget": 1000.0,
+      "preferred_categories": ["Beverage", "Dessert"]
+    }
+  },
+  {
+    "id": "tc_43",
+    "category": "Course Preferences",
+    "input_message": "We only want starters and main course for 3 people, budget 1500.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 1500.0,
+      "preferred_categories": ["Starter", "Main Course"]
+    }
+  },
+  {
+    "id": "tc_44",
+    "category": "Dietary Keywords",
+    "input_message": "Halal chicken dinner for 4 people, budget 2000.",
+    "expected": {
+      "people_count": 4,
+      "non_vegetarian_count": 4,
+      "max_budget": 2000.0
+    }
+  },
+  {
+    "id": "tc_45",
+    "category": "Dietary Keywords",
+    "input_message": "Keto meal for 1 person, budget 700.",
+    "expected": {
+      "people_count": 1,
+      "max_budget": 700.0
+    }
+  },
+  {
+    "id": "tc_46",
+    "category": "Colloquial Numbers",
+    "input_message": "A dozen people coming over, budget 6000 INR.",
+    "expected": {
+      "people_count": 12,
+      "max_budget": 6000.0
+    }
+  },
+  {
+    "id": "tc_47",
+    "category": "Colloquial Numbers",
+    "input_message": "Half a dozen guests, budget 3000.",
+    "expected": {
+      "people_count": 6,
+      "max_budget": 3000.0
+    }
+  },
+  {
+    "id": "tc_48",
+    "category": "Currency variations",
+    "input_message": "Food for 2, budget Rs. 950.",
+    "expected": {
+      "people_count": 2,
+      "max_budget": 950.0
+    }
+  },
+  {
+    "id": "tc_49",
+    "category": "Currency variations",
+    "input_message": "3 people, ₹1800 budget, 1 veg 2 non-veg.",
+    "expected": {
+      "people_count": 3,
+      "max_budget": 1800.0,
+      "vegetarian_count": 1,
+      "non_vegetarian_count": 2
+    }
+  },
+  {
+    "id": "tc_50",
+    "category": "Multiple Allergens",
+    "input_message": "Food for 4, budget 2200. Highly allergic to gluten, soy, and peanuts.",
+    "expected": {
+      "people_count": 4,
+      "max_budget": 2200.0,
+      "excluded_allergens": ["Gluten", "Soy", "Peanuts"]
+    }
+  }
+]

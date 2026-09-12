@@ -72,7 +72,7 @@ async def health_check():
 
 
 # Import and include routers
-from app.routers import chat, menu, admin, auth, orders, cart, admin_menu
+from app.routers import chat, menu, admin, auth, orders, cart, admin_menu, admin_chat
 app.include_router(chat.router)
 app.include_router(menu.router)
 app.include_router(admin.router)
@@ -80,4 +80,5 @@ app.include_router(auth.router)
 app.include_router(orders.router)
 app.include_router(cart.router)
 app.include_router(admin_menu.router)
+app.include_router(admin_chat.router)
 # reload

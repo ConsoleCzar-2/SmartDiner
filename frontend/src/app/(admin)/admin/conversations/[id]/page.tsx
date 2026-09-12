@@ -5,6 +5,7 @@ import { fetchAdminConversation, fetchAdminAuditLogs } from "@/lib/api";
 import { User, Bot, FileJson, ArrowLeft, Terminal, LayoutPanelLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import WormLogViewer from "@/components/admin/WormLogViewer";
+import { MarkdownContent } from "@/components/ui/markdown-content";
 
 export default function ConversationDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -100,7 +101,10 @@ export default function ConversationDetailPage({ params }: { params: Promise<{ i
                                                     : "bg-[#f6a61d] text-[#1e170d] font-medium"
                                             }`}
                                         >
-                                            {msg.content}
+                                            <MarkdownContent 
+                                                content={msg.content} 
+                                                variant={isAssistant ? "assistant" : "user"} 
+                                            />
                                         </div>
                                         {isAssistant && (
                                             <button 

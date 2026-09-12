@@ -19,7 +19,7 @@ async def test_extract_basic_order(mock_client_class):
     ))
     
     msg = "We are 3 friends, one of us is vegetarian. Make it spicy. Budget is around 1500 INR."
-    result = await extract_constraints(msg)
+    result, _ = await extract_constraints(msg)
     
     assert result.people_count == 3
     assert result.vegetarian_count == 1
@@ -35,7 +35,7 @@ async def test_extract_allergy_mapping(mock_client_class):
     ))
     
     msg = "I am allergic to cheese and wheat. Just 1 person."
-    result = await extract_constraints(msg)
+    result, _ = await extract_constraints(msg)
     
     assert result.people_count == 1
     assert "Dairy" in result.excluded_allergens
@@ -50,7 +50,7 @@ async def test_extract_modification(mock_client_class):
     
     msg = "Actually, let's make it for 4 people and increase the budget to 2000."
     history = [{"role": "user", "content": "I need dinner for 3, budget 1500"}]
-    result = await extract_constraints(msg, conversation_history=history)
+    result, _ = await extract_constraints(msg, conversation_history=history)
     
     assert result.people_count == 4
     assert result.max_budget == 2000.0
@@ -64,7 +64,7 @@ async def test_extract_cheap_no_budget(mock_client_class):
     ))
     
     msg = "We want a cheap meal for 2 people."
-    result = await extract_constraints(msg)
+    result, _ = await extract_constraints(msg)
     
     assert result.people_count == 2
     assert result.max_budget is None
@@ -77,7 +77,7 @@ async def test_extract_specific_dish(mock_client_class):
     ))
     
     msg = "Get me some butter chicken and garlic naan for 2 people."
-    result = await extract_constraints(msg)
+    result, _ = await extract_constraints(msg)
     
     assert result.people_count == 2
     dishes = [d.lower() for d in result.specific_dish_requests]
@@ -92,7 +92,7 @@ async def test_extract_slang_allergies(mock_client_class):
     ))
     
     msg = "Can't have peanuts bro, will literally die. Table for 1."
-    result = await extract_constraints(msg)
+    result, _ = await extract_constraints(msg)
     
     assert result.people_count == 1
     assert "Peanuts" in result.excluded_allergens
@@ -105,7 +105,7 @@ async def test_extract_cuisine_preference(mock_client_class):
     ))
     
     msg = "I'm feeling like Chinese tonight. 2 people."
-    result = await extract_constraints(msg)
+    result, _ = await extract_constraints(msg)
     
     assert result.people_count == 2
     assert any("Chinese" in c for c in result.preferred_cuisines)
@@ -118,6 +118,6 @@ async def test_extract_contradictory_input(mock_client_class):
     ))
     
     msg = "We are 2 people, wait no 3 people."
-    result = await extract_constraints(msg)
+    result, _ = await extract_constraints(msg)
     
     assert result.people_count == 3

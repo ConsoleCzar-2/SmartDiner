@@ -46,3 +46,22 @@ This document records the 10 most critical architectural and engineering decisio
 ## 11. FastAPI + asyncpg for the Backend
 **Decision:** Used FastAPI with asynchronous SQLAlchemy (`asyncpg`) rather than Django or Express.
 **Rationale:** FastAPI provides native integration with Pydantic (crucial for our LLM JSON schemas). `asyncpg` ensures that the heavy DB I/O (running complex JOINs to filter out allergens) doesn't block the Python event loop, allowing thousands of concurrent websocket/chat connections.
+
+## 12. Centralized System Constants (`app.constants`)
+**Decision:** All cache TTLs, platform currency codes, supported allergens, spice scales, and cuisine synonyms were unified into `backend/app/constants.py`.
+**Rationale:** Prevents configuration drift between service layers and routing endpoints (such as `menu_filter.py` and `menu.py` drifting in TTL values). Ensures that a single modification updates both backend filtering logic and API caching rules uniformly.
+
+## 13. Dual-Tier In-Memory Caching Architecture
+**Decision:** Implemented a two-tiered in-memory caching system:
+1. **L1 Catalog Cache (`MENU_CACHE` in `menu.py`):** Caches full-menu relational joins for customer browsing (`GET /api/restaurants/{id}/menu`) with a 300s TTL.
+2. **L2 Dynamic Filter Cache (`MENU_FILTER_CACHE` in `menu_filter.py`):** Caches deterministic, constraint-hashed menu queries for the AI recommendation pipeline (`POST /api/chat`) with a synchronized 300s TTL.
+**Rationale:** Browsing requires eager-loading all ingredients and allergens across the whole menu, whereas AI chat dynamically queries subsets based on fluctuating constraints. Separating these tiers allows the chat pipeline to bypass database subqueries on multi-turn refinements (< 0.2 ms retrieval) while ensuring that admin updates atomically invalidate both tiers simultaneously.
+
+## 14. Strict Indian Rupee (INR) Platform Currency Standard
+**Decision:** Standardized 100% of financial figures, database constraints, calculations, LLM prompts, and frontend formatting to Indian Rupees (`₹` / INR).
+**Rationale:** Mixing dollar symbols with rupee amounts creates severe confusion for diners and breaks revenue aggregation in the Admin AI Insights engine. Grounding all models and prompts in INR ensures audit compliance and consistency across operational metrics.
+
+## 15. Markdown-Driven Agent Communication with Zero-Emoji Policy
+**Decision:** Implemented universal markdown rendering via `frontend/src/components/ui/markdown-content.tsx` while enforcing a strict zero-emoji policy across all system prompts and generated outputs.
+**Rationale:** Emojis degrade the professional quality of enterprise audit logs and executive business intelligence reports, while creating token overhead and parsing inconsistencies. Structured markdown (tables, lists, bold highlights) delivers maximum clarity for both diner recommendations and admin operational insights.
+

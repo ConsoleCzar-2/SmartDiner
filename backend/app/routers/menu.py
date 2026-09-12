@@ -44,10 +44,10 @@ async def get_restaurant(restaurant_id: str, db: AsyncSession = Depends(get_db))
 
 
 import time
+from app.constants import MENU_CACHE_TTL_SECONDS
 
 # Simple in-memory cache to prevent N+1 join queries on every load
 MENU_CACHE = {}
-CACHE_TTL = 300 # 5 minutes
 
 @router.get("/restaurants/{restaurant_id}/menu", response_model=List[MenuItemResponse])
 async def get_restaurant_menu(restaurant_id: str, db: AsyncSession = Depends(get_db)):
@@ -57,7 +57,7 @@ async def get_restaurant_menu(restaurant_id: str, db: AsyncSession = Depends(get
     # Check cache
     if restaurant_id in MENU_CACHE:
         cached_data, timestamp = MENU_CACHE[restaurant_id]
-        if current_time - timestamp < CACHE_TTL:
+        if current_time - timestamp < MENU_CACHE_TTL_SECONDS:
             return cached_data
 
     query = select(MenuItem).options(

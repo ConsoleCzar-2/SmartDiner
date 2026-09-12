@@ -96,20 +96,56 @@ The mathematically verified output from Step 3 is fed back into Gemini 3.5 Flash
 - **Action:** Generates a friendly, 2-3 sentence summary explaining the recommendation.
 - **Safety:** The system prompt strictly forbids hallucinating items, prices, or rationales outside of the injected solver context.
 
-### Step 5: Compliance Audit Logging (Asynchronous)
-Once the response is generated, a background task compiles the user's constraints, the math solver's output, and the LLM's explanation into a single structured JSON payload.
-- **Action:** Uploads the payload to Google Cloud Storage (GCS).
-- **Compliance:** The GCS bucket is configured with **Object Lock** to enforce WORM (Write Once, Read Many). This guarantees cryptographically that the AI's decision trail cannot be deleted or modified for the duration of the retention policy (e.g., 7 days or 1 year).
+### Step 5: Enriched Compliance Audit Logging (Asynchronous WORM)
+Once the response is generated, a FastAPI `BackgroundTask` compiles a comprehensive telemetry payload into an immutable JSON artifact uploaded to Google Cloud Storage (GCS) with Object Lock:
+- **Exact SQL Executed:** Full compiled SQL string with bound parameters and query execution time (ms).
+- **Cache Hit / Miss:** Status of the in-memory menu filter cache (`status`, `key`, `duration_ms`, `ttl_remaining_s`, `items_count`).
+- **LLM Token Usage:** Exact `prompt_tokens`, `completion_tokens`, and `total_tokens` recorded across Intent Classification, Constraint Extraction, and Explanation Generation with latency timestamps.
+- **Mathematical Solver Rationale:** Objective function value, CBC solve time (ms), count of items considered, count of items selected, and active category distribution.
+- **Compliance:** Object Lock guarantees Write Once, Read Many (WORM) immutability, preventing alteration or premature deletion.
 
-## 3. Technology Stack
+## 3. Advanced Subsystems
+
+### 3.1. Restaurant-Agnostic Concierge & Multi-Venue Resolver
+Customers can converse with the AI Concierge directly from the landing page without selecting a restaurant in advance.
+1. **Direct Venue Resolution:** If the user specifies a restaurant by name (e.g., "order from Spice Garden"), the resolver performs fuzzy and case-insensitive matching to bind the session to that restaurant UUID.
+2. **Cross-Restaurant Optimization:** If no restaurant is specified, the system evaluates user dish and cuisine preferences across all active restaurants, executes candidate menu filters, runs the ILP solver across the top venues, and returns ranked meal packages.
+3. **Session Finalization:** The frontend renders comparison cards with a "Lock In & Order" action, allowing the diner to seamlessly lock in the chosen restaurant and continue ordering.
+
+### 3.2. Dual-Source Admin Conversational Business Intelligence
+The executive admin dashboard integrates a dedicated conversational AI engine powered by Gemini 3.5 Flash Lite:
+- **Intelligent Query Classification:** Automatically classifies admin questions into `POSTGRES_METRICS` (live order volume, revenue sums, popular items), `GCS_AUDIT_LOGS` (historical solver behavior, allergen frequency trends), or `HYBRID`.
+- **Strict Role-Based Access Control (RBAC):** `RESTAURANT_ADMIN` users have queries dynamically scoped to their own `restaurant_id`; `PLATFORM_ADMIN` users can query system-wide trends.
+- **Source Attribution:** Responses indicate data provenance with transparent visual badges (`PostgreSQL Database`, `GCS WORM Audit Logs`).
+
+### 3.3. Enhanced Meal Diversity & Course Balance Model
+To guarantee realistic, high-quality dining packages:
+- **Category Diversity Bonus:** The ILP objective function includes a +5.0 multiplier per unique category activated.
+- **Soft Course Structure Penalties:** For dining groups of 3 or more, soft penalties (-10.0 for missing Starter, -10.0 for missing Main Course, -5.0 for missing Dessert/Beverage) strongly penalize unbalanced meals while maintaining mathematical feasibility under tight budgets.
+- **Anti-Monopoly Caps:** Restricts staple bread and rice quantities to `ceil(people_count * 1.5)` to prevent the solver from filling budgets with repetitive carbs.
+
+### 3.4. Dual-Tier In-Memory Caching Architecture & Centralized Constants
+To eliminate redundant database operations while maintaining strict data consistency across multi-turn sessions:
+- **L1 Full Catalog Cache (`MENU_CACHE`):** Defined in `backend/app/routers/menu.py` with a 300-second TTL. Prevents expensive multi-table relational joins (`Ingredient`, `Allergen`, `MenuItemIngredient`) during customer catalog browsing (`GET /api/restaurants/{id}/menu`).
+- **L2 Dynamic Filter Cache (`MENU_FILTER_CACHE`):** Defined in `backend/app/services/menu_filter.py` with a synchronized 300-second TTL. Generates a deterministic hash from the restaurant ID, spice level, sorted allergen exclusions, sorted cuisines, and normalized budget. Accelerates multi-turn chat refinements by serving candidate items in under 0.2 ms.
+- **Centralized System Constants:** All configuration limits, cache TTLs, dining taxonomies, and platform currency are unified in `backend/app/constants.py`:
+  - `MENU_CACHE_TTL_SECONDS = 300.0`
+  - `MENU_FILTER_CACHE_TTL_SECONDS = 300.0`
+  - `PLATFORM_CURRENCY_CODE = "INR"`, `PLATFORM_CURRENCY_SYMBOL = "₹"`
+  - `SUPPORTED_ALLERGENS`, `SPICE_ORDER`, `CUISINE_SYNONYMS`
+- **Atomic Invalidation:** When restaurant administrators modify dishes in `backend/app/routers/admin_menu.py`, the system evicts both L1 (`MENU_CACHE.pop()`) and L2 (`clear_menu_filter_cache()`) entries, guaranteeing zero stale data.
+
+## 4. Technology Stack
 
 ### Frontend
 - **Framework:** Next.js App Router with TypeScript
 - **Styling:** Tailwind CSS + Framer Motion (glassmorphic UI, micro-animations)
+- **Markdown & Icons:** React Markdown + Tailwind Typography + Lucide React
 - **State Management:** React Hooks and URL search parameters; API access uses `NEXT_PUBLIC_API_URL`.
 
 ### Backend
 - **Framework:** FastAPI (Python 3.12+)
+- **Constants Layer:** `backend/app/constants.py` (Single Source of Truth)
 - **Database:** PostgreSQL 16 (via asyncpg)
 - **ORM:** SQLAlchemy 2.0 + Alembic for migrations
 - **AI/Math:** `google-genai` (Gemini API) + `PuLP` (CBC Solver)
@@ -117,8 +153,8 @@ Once the response is generated, a background task compiles the user's constraint
 - **Authentication:** JWT customer/admin login with role claims; password hashing uses Passlib with `bcrypt==4.0.1`.
 
 ### HTTP Surface
-The backend provides a comprehensive REST API encompassing restaurant/menu browsing, AI-governed chat and state retrieval, customer registration, admin authentication, admin metrics, and full audit conversation listing. This API acts as the bridge between the React frontend and the governed pipeline.
+The backend provides a comprehensive REST API encompassing restaurant/menu browsing, AI-governed chat and state retrieval, customer registration, admin authentication, admin metrics, admin conversational insights (`POST /api/admin/insights/chat`), and full audit conversation listing.
 
-## 4. Alternative Architectures Considered
+## 5. Alternative Architectures Considered
 - **Pure LLM Agent (e.g., LangChain/ReAct):** Initially considered using a ReAct loop where the LLM writes SQL queries. **Rejected** due to high latency, prompt injection vulnerabilities, and mathematical unreliability when summing up budgets.
 - **Vector Database (RAG):** Considered for menu searching. **Rejected** because relational SQL filtering is overwhelmingly superior for exact-match exclusion (like deadly allergies) and numerical bounds (budget thresholds). Semantic search provides no value for strict dietary adherence.

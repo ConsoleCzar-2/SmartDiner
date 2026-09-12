@@ -15,10 +15,13 @@ async def upload_audit_log_to_gcs(
     extracted_constraints: dict,
     solver_output: dict,
     llm_explanation: str,
-    recommended_cart: list
+    recommended_cart: list,
+    intent: dict = None,
+    pipeline_telemetry: dict = None
 ):
     """
-    Asynchronously uploads a WORM audit log to GCS containing the full context of the recommendation.
+    Asynchronously uploads an enriched WORM audit log to GCS containing the full context
+    and telemetry (SQL queries, cache hits, token usage, solver decisions) of the recommendation.
     Runs inside a FastAPI BackgroundTask so it doesn't block the HTTP response.
     """
     if not settings.gcs_audit_bucket_name:
@@ -31,7 +34,9 @@ async def upload_audit_log_to_gcs(
         "user_id": user_id,
         "restaurant_id": restaurant_id,
         "user_message": user_message,
+        "intent": intent or {},
         "extracted_constraints": extracted_constraints,
+        "pipeline_telemetry": pipeline_telemetry or {},
         "solver_output": solver_output,
         "llm_explanation": llm_explanation,
         "recommended_cart": recommended_cart
@@ -48,15 +53,13 @@ async def upload_audit_log_to_gcs(
             
             # Upload the JSON payload
             blob.upload_from_string(
-                data=json.dumps(payload, indent=2),
+                data=json.dumps(payload, indent=2, default=str),
                 content_type="application/json"
             )
             
             logger.info(f"Successfully uploaded WORM audit log to gs://{settings.gcs_audit_bucket_name}/{blob_name}")
         except Exception as e:
-            # We catch all exceptions because we don't want audit logging failures 
-            # to crash the background task worker or cause broader application issues.
-            logger.error(f"Failed to upload audit log to GCS: %s", e)
+            logger.error("Failed to upload audit log to GCS: %s", e)
 
     # Run the synchronous google-cloud-storage library in an executor to avoid blocking the async event loop
     loop = asyncio.get_running_loop()

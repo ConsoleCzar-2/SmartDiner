@@ -1,15 +1,16 @@
 import json
+import time
 from google import genai
 from app.schemas.constraints import ExtractedConstraints
 from app.prompts.constraint_extraction import SYSTEM_PROMPT
 from app.config import settings
 
 async def extract_constraints(user_message: str, conversation_history: list = None, 
-                              existing_constraints: dict = None, current_cart: list = None) -> ExtractedConstraints:
+                              existing_constraints: dict = None, current_cart: list = None) -> tuple[ExtractedConstraints, dict]:
     """
     Extracts structured constraints from a natural language user message using Gemini.
+    Returns (ExtractedConstraints, telemetry_dict).
     """
-    print(f"DEBUG: SDK using key starting with '{settings.gemini_api_key[:10]}' (length: {len(settings.gemini_api_key)})")
     client = genai.Client(api_key=settings.gemini_api_key)
 
     # Format conversation history if provided (useful for modifications)
@@ -45,6 +46,7 @@ async def extract_constraints(user_message: str, conversation_history: list = No
                     prop["nullable"] = True
                 del prop["anyOf"]
 
+    t0 = time.perf_counter()
     response = await client.aio.models.generate_content(
         model="gemini-3.5-flash-lite",
         contents=final_prompt,
@@ -55,6 +57,25 @@ async def extract_constraints(user_message: str, conversation_history: list = No
             "temperature": 0.1,
         }
     )
+    t1 = time.perf_counter()
+    latency_ms = round((t1 - t0) * 1000, 2)
+
+    usage = getattr(response, "usage_metadata", None)
+    prompt_tokens = getattr(usage, "prompt_token_count", 0) or 0
+    completion_tokens = getattr(usage, "candidates_token_count", 0) or 0
+    total_tokens = getattr(usage, "total_token_count", 0) or (prompt_tokens + completion_tokens)
+
+    telemetry = {
+        "step": "constraint_extractor",
+        "model": "gemini-3.5-flash-lite",
+        "temperature": 0.1,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+        "latency_ms": latency_ms,
+        "prompt_preview": final_prompt[:500]
+    }
 
     # Validate and return the Pydantic object
-    return ExtractedConstraints.model_validate_json(response.text)
+    result = ExtractedConstraints.model_validate_json(response.text)
+    return result, telemetry

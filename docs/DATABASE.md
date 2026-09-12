@@ -169,6 +169,74 @@ Master lookup table for dietary classifications (e.g. "Vegan", "Jain"), mapped t
 Maintains the state of an ongoing chat session, acting as the memory bank for the LLM.
 - `id` (UUIDv7, PK)
 - `user_id` (UUID, FK -> `users.id`, Nullable)
+
+## Detailed Schema Definitions
+
+### 1. `restaurants`
+The top-level entity that scopes menus, orders, and admin users.
+- `id` (UUIDv7, PK)
+- `name` (String 150, NOT NULL)
+- `address` (Text, Nullable)
+- `cuisine_type` (String 100, Nullable) — Constrained via `CHECK IN` to standard cuisines.
+- `image_url` (Text, Nullable)
+- `is_active` (Boolean, default: True) — Used for soft-deletions to preserve historical order data.
+- `created_at` (TIMESTAMPTZ)
+- **Relationships:** `menu_items`, `admin_users`, `orders`
+
+### 2. `users`
+End-users interacting with the AI assistant.
+- `id` (UUIDv7, PK)
+- `name` (String 100, Nullable)
+- `default_preferences` (JSONB, default: `{}`) — Stores default dietary needs, allergens, and spice tolerance.
+- `created_at` (TIMESTAMPTZ)
+- **Relationships:** `orders`, `conversations`
+
+### 3. `admin_users`
+Platform administrators and restaurant managers. Enforces strict RBAC via a table-level check constraint.
+- `id` (UUIDv7, PK)
+- `email` (String 150, UNIQUE, NOT NULL)
+- `password_hash` (Text, NOT NULL)
+- `role` (String 30, NOT NULL) — Must be `'PLATFORM_ADMIN'` or `'RESTAURANT_ADMIN'`.
+- `restaurant_id` (UUID, FK -> `restaurants.id`, Nullable)
+- `is_active` (Boolean, default: True)
+- `created_at` (TIMESTAMPTZ)
+- **Constraints:** `ck_admin_scope` ensures `PLATFORM_ADMIN` has `restaurant_id IS NULL`, while `RESTAURANT_ADMIN` has `restaurant_id IS NOT NULL`.
+
+### 4. `menu_items`
+Individual dishes scoped to a specific restaurant.
+- `id` (UUIDv7, PK)
+- `restaurant_id` (UUID, FK -> `restaurants.id`, ON DELETE CASCADE, NOT NULL)
+- `name` (String 150, NOT NULL)
+- `description` (Text, Nullable)
+- `category` (String 50, NOT NULL) — `CHECK IN ('Starter', 'Main Course', 'Bread', 'Rice', 'Beverage', 'Dessert', 'Side', 'Combo', 'Fast Food')`
+- `price` (Numeric(10,2), NOT NULL) — `CHECK (price >= 0)`. Uses Numeric instead of Float to prevent rounding errors.
+- `dietary_preference` (String 30, NOT NULL) — `CHECK IN ('Vegetarian', 'Vegan', 'Non-Vegetarian')`
+- `spice_level` (String 20, NOT NULL) — `CHECK IN ('None', 'Low', 'Medium', 'High', 'Extreme')`
+- `cuisine` (String 50, NOT NULL) — Constrained to standard types (e.g. 'North Indian', 'Fast Food', 'Beverages').
+- `serving_size` (Integer, default: 1, NOT NULL) — `CHECK (serving_size > 0)`
+- `is_available` (Boolean, default: True)
+- `rating` (Numeric(2,1), default: 4.0) — `CHECK (rating BETWEEN 0 AND 5)`
+- `image_url` (Text, Nullable)
+- `created_at` (TIMESTAMPTZ)
+- **Indexes:** 
+  - `idx_menu_filter`: Composite index on `(restaurant_id, is_available, dietary_preference, spice_level, price)`. This is the critical index used by the deterministic filter engine.
+- **Relationships:** `restaurant`, `ingredients`, `dietary_tags`, `menu_item_allergens`, `order_items`
+
+### 5. `ingredients`, `allergens` & Join Tables
+Master lookup tables that define what a dish is made of, and which allergens those ingredients contain. This enforces a single source of truth for allergens.
+- **`ingredients`**: `id` (Integer, PK), `name` (String 100, UNIQUE, NOT NULL).
+- **`allergens`**: `id` (Integer, PK), `name` (String 50, UNIQUE, NOT NULL).
+- **`menu_item_ingredients` (Join)**: `menu_item_id` (FK), `ingredient_id` (FK).
+- **`ingredient_allergens` (Join)**: `ingredient_id` (FK), `allergen_id` (FK).
+
+### 6. `dietary_tags` & `menu_item_tags`
+Master lookup table for dietary classifications (e.g. "Vegan", "Jain"), mapped to menu items via a Many-to-Many join table. 
+- Structurally identical to the Allergen tables.
+
+### 7. `conversations`
+Maintains the state of an ongoing chat session, acting as the memory bank for the LLM.
+- `id` (UUIDv7, PK)
+- `user_id` (UUID, FK -> `users.id`, Nullable)
 - `restaurant_id` (UUID, FK -> `restaurants.id`, Nullable)
 - `messages` (JSONB, default: `[]`) — Raw chat history for context.
 - `current_constraints` (JSONB, default: `{}`) — Accumulated rules (e.g., budget, people count).
@@ -192,3 +260,25 @@ Records completed transactions and provides an audit trail for the deterministic
   - `unit_price` (Numeric(10,2), NOT NULL)
   - `subtotal` (Numeric(10,2), NOT NULL)
 
+---
+
+## 9. Seed Dataset Overhaul & Migration Utilities
+
+### 9.1. Six Distinct Culinary Venues
+The database is seeded with six authentic, distinct dining establishments:
+1. **Spice Garden** (North Indian): Authentic Mughlai curries, tandoori items, and rich dal preparations.
+2. **Dragon's Wok** (Indo-Chinese): Szechuan noodles, dim sums, and spicy wok specialties.
+3. **The Grand Kitchen** (Continental): Pastas, risottos, grilled poultry/salmon, and European desserts.
+4. **South Spice Heritage** (South Indian): Traditional dosas, idlis, sambars, and Chettinad curries.
+5. **Tokyo Umami** (Pan-Asian / Other): Ramen, gyoza, yakitori, and matcha specialties.
+6. **Green Haven Cafe** (Healthy Cafe / Other): Quinoa bowls, avocado toasts, smoothies, and vegan delights.
+
+### 9.2. Curated Menu Items (99 Unique Dishes)
+- Completely eliminates synthetic repetitive names ("Dish 1-7").
+- Each dish has realistic pricing, positive serving sizes, validated dietary preferences (`Vegetarian`, `Non-Vegetarian`, `Vegan`), spice levels, and deep ingredient-to-allergen mappings.
+- All cuisines adhere strictly to PostgreSQL check constraints (`ck_menu_items_valid_cuisine`).
+
+### 9.3. Database Migration & Reseed Tools
+- **`backend/seed/truncate_db.py`**: Clean, cascading table truncation that wipes line items, orders, conversations, menu relationships, ingredients, allergens, and restaurants without foreign key lockouts.
+- **`backend/seed/seed_data.py`**: Asynchronously seeds the master records and all 99 unique dishes with allergen associations.
+- **`backend/seed/seed_render.py`**: Production CLI utility for truncating and reseeding remote Render PostgreSQL instances with safety confirmations (`--url` flag).

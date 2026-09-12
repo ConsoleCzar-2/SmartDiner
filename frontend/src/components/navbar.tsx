@@ -20,24 +20,16 @@ function NavbarContent() {
             {links.map(({ href, label, icon: Icon }) => {
                 const isChat = href === "/chat";
                 const targetHref = isChat && restaurantId ? `/chat?restaurant_id=${restaurantId}` : href;
-                const isDisabled = isChat && !restaurantId;
 
                 return (
                     <Link
                         key={href}
-                        href={isDisabled ? "#" : targetHref}
-                        onClick={(e) => {
-                            if (isDisabled) {
-                                e.preventDefault();
-                                alert("Please select a restaurant first to use the Concierge.");
-                            }
-                        }}
+                        href={targetHref}
                         className={cn(
                             "flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition",
                             pathname === href
                                 ? "bg-[#f6a61d] text-[#1e170d]"
-                                : "text-zinc-400 hover:bg-white/8 hover:text-white",
-                            isDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent hover:text-zinc-400"
+                                : "text-zinc-400 hover:bg-white/8 hover:text-white"
                         )}
                     >
                         <Icon className="h-3.5 w-3.5" />

@@ -1,16 +1,17 @@
 """Grounded explanation generator using Gemini 3.5 Flash Lite (Pipeline Step 4)."""
 
 import json
+import time
 from google import genai
 from app.prompts.explanation import EXPLANATION_SYSTEM_PROMPT
 from app.schemas.constraints import ExtractedConstraints
 from app.config import settings
 
-
-async def generate_explanation(solver_output: dict, constraints: ExtractedConstraints) -> str:
+async def generate_explanation(solver_output: dict, constraints: ExtractedConstraints, safety_notes: list[str] = None) -> tuple[str, dict]:
     """
     Takes the verified solver output and user constraints, asks Gemini to produce
     a brief, friendly, strictly-grounded explanation.
+    Returns (explanation_text, telemetry_dict).
     """
     # Build the user-facing context block that gets injected into the prompt
     items_summary = []
@@ -25,15 +26,21 @@ async def generate_explanation(solver_output: dict, constraints: ExtractedConstr
             "category": item.category,
         })
 
+    safety_notes_block = ""
+    if safety_notes:
+        safety_notes_block = "SAFETY_EXCLUSION_NOTES:\n" + "\n".join(f"- {note}" for note in safety_notes) + "\n\n"
+
     context_block = (
         f"VERIFIED_RESULTS:\n"
         f"Status: {solver_output['status']}\n"
         f"Items: {json.dumps(items_summary, indent=2)}\n"
         f"Total Cost: ₹{solver_output['total_cost']}\n"
         f"Total Servings: {solver_output['total_servings']}\n\n"
+        f"{safety_notes_block}"
         f"USER_CONSTRAINTS:\n"
         f"People: {constraints.people_count}\n"
         f"Vegetarians: {constraints.vegetarian_count}\n"
+        f"Vegans: {constraints.vegan_count}\n"
         f"Budget: {'₹' + str(constraints.max_budget) if constraints.max_budget else 'No limit'}\n"
         f"Excluded Allergens: {', '.join(constraints.excluded_allergens) if constraints.excluded_allergens else 'None'}\n"
         f"IS_MODIFICATION: {'True' if constraints.is_modification else 'False'}\n"
@@ -51,6 +58,7 @@ async def generate_explanation(solver_output: dict, constraints: ExtractedConstr
 
     client = genai.Client(api_key=settings.gemini_api_key)
 
+    t0 = time.perf_counter()
     response = await client.aio.models.generate_content(
         model="gemini-3.5-flash-lite",
         contents=context_block,
@@ -59,12 +67,31 @@ async def generate_explanation(solver_output: dict, constraints: ExtractedConstr
             "temperature": 0.3,
         }
     )
+    t1 = time.perf_counter()
+    latency_ms = round((t1 - t0) * 1000, 2)
 
-    return response.text
+    usage = getattr(response, "usage_metadata", None)
+    prompt_tokens = getattr(usage, "prompt_token_count", 0) or 0
+    completion_tokens = getattr(usage, "candidates_token_count", 0) or 0
+    total_tokens = getattr(usage, "total_token_count", 0) or (prompt_tokens + completion_tokens)
 
-async def generate_question_answer(user_message: str, current_cart: list, constraints: dict, conversation_history: list = None) -> str:
+    telemetry = {
+        "step": "explanation_generator",
+        "model": "gemini-3.5-flash-lite",
+        "temperature": 0.3,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+        "latency_ms": latency_ms,
+        "prompt_preview": context_block[:400]
+    }
+
+    return response.text, telemetry
+
+async def generate_question_answer(user_message: str, current_cart: list, constraints: dict, conversation_history: list = None) -> tuple[str, dict]:
     """
     Answers user questions about the current order without modifying it.
+    Returns (answer_text, telemetry_dict).
     """
     context_block = (
         f"CURRENT_CART:\n{json.dumps(current_cart, indent=2)}\n\n"
@@ -80,6 +107,7 @@ async def generate_question_answer(user_message: str, current_cart: list, constr
     prompt = f"{context_block}\nUSER_QUESTION: {user_message}"
     
     client = genai.Client(api_key=settings.gemini_api_key)
+    t0 = time.perf_counter()
     response = await client.aio.models.generate_content(
         model="gemini-3.5-flash-lite",
         contents=prompt,
@@ -88,4 +116,23 @@ async def generate_question_answer(user_message: str, current_cart: list, constr
             "temperature": 0.3,
         }
     )
-    return response.text
+    t1 = time.perf_counter()
+    latency_ms = round((t1 - t0) * 1000, 2)
+
+    usage = getattr(response, "usage_metadata", None)
+    prompt_tokens = getattr(usage, "prompt_token_count", 0) or 0
+    completion_tokens = getattr(usage, "candidates_token_count", 0) or 0
+    total_tokens = getattr(usage, "total_token_count", 0) or (prompt_tokens + completion_tokens)
+
+    telemetry = {
+        "step": "question_answer",
+        "model": "gemini-3.5-flash-lite",
+        "temperature": 0.3,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+        "latency_ms": latency_ms,
+        "prompt_preview": prompt[:400]
+    }
+
+    return response.text, telemetry

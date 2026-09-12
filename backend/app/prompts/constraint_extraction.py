@@ -17,7 +17,7 @@ RULES:
 4. If a user asks to modify an existing order, set is_modification to true.
 5. If a user specifies terms like "cheap" or "affordable", leave max_budget as null.
 6. If the user specifically asks for a dish, add it to specific_dish_requests.
-7. NEVER calculate non_vegetarian_count yourself. Always leave it null. The system will auto-compute it.
+7. If the user explicitly states the number of non-vegetarians (e.g., '2 non-veg'), set non_vegetarian_count. Otherwise, leave it null and the backend will auto-compute it from people_count.
 8. If the user specifies a cuisine, add it to preferred_cuisines.
 9. "Vegan" implies vegan_count, NOT vegetarian_count.
 10. If the user asks for a specific category (e.g., "just starters"), add it to preferred_categories.

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -110,6 +111,7 @@ async def add_to_cart(
         })
 
     conv.current_cart = cart
+    conv.updated_at = datetime.now(timezone.utc)
     await db.commit()
     
     return {"conversation_id": conv.id, "cart": conv.current_cart}
@@ -149,6 +151,7 @@ async def patch_cart(
                 break
                 
     conv.current_cart = cart
+    conv.updated_at = datetime.now(timezone.utc)
     await db.commit()
     
     return {"conversation_id": conv.id, "cart": conv.current_cart}

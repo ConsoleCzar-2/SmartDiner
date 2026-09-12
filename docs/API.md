@@ -20,15 +20,17 @@ Processes natural language input from the customer, updates conversation state, 
   "restaurant_id": "01a03c12-0f10-79cc-ae4f-6f32ca7a29b8",
   "user_id": "01a03c12-0f10-79cc-ae4f-6f32ca7a29b9",
   "conversation_id": "01a03c12-0f10-79cc-ae4f-6f32ca7a29b0", 
-  "message": "We have 4 people, 1 is strictly vegetarian, nobody can eat peanuts. Budget is ₹4000 total."
+  "message": "We have 4 people, 1 is strictly vegetarian, nobody can eat peanuts. Budget is 4000 total."
 }
 ```
-*Note: If `conversation_id` is omitted or null, a new conversation state is instantiated.*
+*Note: `restaurant_id` is optional. When omitted or null, the request runs in **Restaurant-Agnostic Concierge Mode**, dynamically searching across candidate restaurants and returning cross-restaurant comparison metadata. If `conversation_id` is omitted or null, a new conversation state is instantiated.*
 
 #### Success Response (200 OK)
 ```json
 {
   "conversation_id": "01a03c12-0f10-79cc-ae4f-6f32ca7a29b0",
+  "restaurant_id": "01a03c12-0f10-79cc-ae4f-6f32ca7a29b8",
+  "restaurant_name": "Spice Garden",
   "status": "Optimal",
   "reason": "Here is a safe, optimal feast for 4 that keeps you completely peanut-free while respecting your budget!",
   "computed_total": 3850,
@@ -46,18 +48,21 @@ Processes natural language input from the customer, updates conversation state, 
       "quantity": 2,
       "subtotal": 2400,
       "total_servings": 4
-    },
-    {
-      "id": "01a03c12-0f10-79cc-ae4f-6f32ca7a29c2",
-      "name": "Paneer Tikka",
-      "category": "Starter",
-      "spice_level": "Medium",
-      "dietary_preference": "Vegetarian",
-      "quantity": 1,
-      "subtotal": 1450,
-      "total_servings": 5
     }
-  ]
+  ],
+  "cross_restaurant_meta": {
+    "is_cross_restaurant": true,
+    "top_candidates": [
+      {
+        "restaurant_id": "01a03c12-0f10-79cc-ae4f-6f32ca7a29b8",
+        "restaurant_name": "Spice Garden",
+        "cuisine": "North Indian",
+        "rating": 4.8,
+        "sample_dishes": ["Butter Chicken", "Dal Makhani"],
+        "match_score": 95
+      }
+    ]
+  }
 }
 ```
 
@@ -135,6 +140,8 @@ Retrieves a list of all active restaurants available on the platform.
 ### `GET /api/restaurants/{id}/menu`
 Retrieves available menu items for a specific restaurant, with allergens derived from their ingredients.
 
+*Note: Responses are accelerated by an in-memory L1 cache (`MENU_CACHE`) with a 300-second TTL (`MENU_CACHE_TTL_SECONDS = 300.0` defined in `app.constants`), preventing repeated multi-table relational joins across ingredients and allergens.*
+
 #### Success Response (200 OK)
 ```json
 [
@@ -205,3 +212,39 @@ Requires a valid JWT token (`Authorization: Bearer <token>`). The user must have
 - **`403 Forbidden`**: The admin does not have permission to view logs for this restaurant.
 - **`404 Not Found`**: The audit log has not been generated yet, or the conversation ID is invalid.
 - **`500 Internal Server Error`**: Catastrophic failure in the GCS client or bucket access.
+
+---
+
+### `POST /api/admin/insights/chat`
+Conversational Executive Business Intelligence engine. Routes natural language inquiries from restaurant and platform admins across dual data sources: live PostgreSQL database analytics and historical immutable GCS WORM audit logs.
+
+#### Authentication
+Requires a valid JWT token (`Authorization: Bearer <token>`). RBAC enforced: `RESTAURANT_ADMIN` calls are strictly scoped to their assigned `restaurant_id`; `PLATFORM_ADMIN` can query globally.
+
+#### Request Body
+```json
+{
+  "message": "What were our top 3 highest revenue dishes and what are the most common allergen requests?"
+}
+```
+
+#### Success Response (200 OK)
+```json
+{
+  "response": "Based on PostgreSQL sales data, your top 3 revenue dishes are Butter Chicken (INR 14,200), Paneer Tikka (INR 8,700), and Dal Makhani (INR 6,400). According to historical GCS audit logs, the most frequent allergen requests are Peanuts (34% of filtered sessions) followed by Dairy (22%).",
+  "data_sources": [
+    "PostgreSQL Database",
+    "GCS WORM Audit Logs"
+  ],
+  "classification": "HYBRID",
+  "context_summary": {
+    "total_revenue": 29300.0,
+    "top_dishes_count": 3,
+    "audit_logs_analyzed": 48
+  }
+}
+```
+
+#### Error Responses
+- **`401 Unauthorized`**: Missing or invalid admin JWT token.
+- **`500 Internal Server Error`**: Failure in database retrieval or Gemini synthesis.

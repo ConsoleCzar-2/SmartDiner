@@ -168,3 +168,153 @@ def test_category_diversity(mock_menu):
     categories = set(item["item"].category for item in result["items"])
     # 6 people -> min 3 categories
     assert len(categories) >= 3
+
+def test_optimizer_soft_meal_structure(mock_menu):
+    veg_items, vegan_items, nonveg_items = mock_menu
+    # Add dessert item
+    dessert_item = create_mock_item("Gulab Jamun", "Dessert", 150.0, "Vegetarian", 1, 4.8)
+    all_veg = veg_items + [dessert_item]
+
+    constraints = ExtractedConstraints(
+        people_count=4,
+        vegetarian_count=2,
+        non_vegetarian_count=2,
+        max_budget=3000.0
+    )
+
+    result = optimize_menu(all_veg, vegan_items, nonveg_items, constraints)
+    assert result["status"] == "Optimal"
+    categories = set(item["item"].category for item in result["items"])
+    # Should include Starter, Main Course, and Dessert
+    assert "Main Course" in categories
+    assert "Starter" in categories
+    assert "Dessert" in categories
+
+def test_optimizer_decision_rationale_telemetry(mock_menu):
+    veg_items, vegan_items, nonveg_items = mock_menu
+    constraints = ExtractedConstraints(
+        people_count=3,
+        vegetarian_count=3,
+        non_vegetarian_count=0,
+        max_budget=2000.0
+    )
+    result = optimize_menu(veg_items, vegan_items, nonveg_items, constraints)
+    assert result["status"] == "Optimal"
+    rationale = result["decision_rationale"]
+    assert "objective_value" in rationale
+    assert "solve_time_ms" in rationale
+    assert "items_considered" in rationale
+    assert "items_selected" in rationale
+    assert "constraint_actuals" in rationale
+    assert rationale["constraint_actuals"]["budget"]["used"] <= 2000.0
+
+def test_strictly_vegan_party(mock_menu):
+    veg_items, vegan_items, nonveg_items = mock_menu
+    constraints = ExtractedConstraints(
+        people_count=2,
+        vegetarian_count=0,
+        vegan_count=2,
+        non_vegetarian_count=0,
+        max_budget=1500.0
+    )
+    result = optimize_menu(veg_items, vegan_items, nonveg_items, constraints)
+    assert result["status"] == "Optimal"
+    # Every single item in the solution MUST be Vegan (no Vegetarian, no Non-Vegetarian)
+    for entry in result["items"]:
+        assert entry["item"].dietary_preference == "Vegan"
+    assert result["total_servings"] >= 2
+
+def test_mixed_vegan_and_vegetarian_party(mock_menu):
+    veg_items, vegan_items, nonveg_items = mock_menu
+    constraints = ExtractedConstraints(
+        people_count=3,
+        vegetarian_count=2,
+        vegan_count=1,
+        non_vegetarian_count=0,
+        max_budget=2000.0
+    )
+    result = optimize_menu(veg_items, vegan_items, nonveg_items, constraints)
+    assert result["status"] == "Optimal"
+    # No non-vegetarian dishes allowed
+    for entry in result["items"]:
+        assert entry["item"].dietary_preference in ["Vegetarian", "Vegan"]
+    # At least 1 vegan serving must be present
+    vegan_servings = sum(entry["quantity"] * entry["item"].serving_size for entry in result["items"] if entry["item"].dietary_preference == "Vegan")
+    assert vegan_servings >= 1
+
+
+def test_dinner_for_two_prioritizes_main_course():
+    """Verify that a dinner for 2 includes a Main Course even if sides and beverages are cheaper."""
+    sides = [create_mock_item("Sweet Potato Wedges", "Side", 160.0, "Vegan", 1, 4.0)]
+    drinks = [
+        create_mock_item("Oat Milk Latte", "Beverage", 180.0, "Vegan", 1, 4.0),
+        create_mock_item("Green Juice", "Beverage", 160.0, "Vegan", 1, 4.0),
+    ]
+    desserts = [create_mock_item("Cacao Truffles", "Dessert", 190.0, "Vegan", 1, 4.0)]
+    mains = [create_mock_item("Vegan Pesto Pasta", "Main Course", 340.0, "Vegan", 1, 4.0)]
+
+    vegan_items = sides + drinks + desserts + mains
+    constraints = ExtractedConstraints(
+        people_count=2,
+        vegetarian_count=0,
+        vegan_count=2,
+        non_vegetarian_count=0,
+        max_budget=1000.0,
+    )
+    result = optimize_menu([], vegan_items, [], constraints)
+    assert result["status"] == "Optimal"
+    categories = [entry["item"].category for entry in result["items"]]
+    assert "Main Course" in categories, "Dinner for 2 must include a Main Course"
+
+
+def test_preferred_category_strictly_enforces_category():
+    """Verify that specifying preferred_categories strictly mandates that category in the cart."""
+    sides = [create_mock_item("Sweet Potato Wedges", "Side", 160.0, "Vegan", 1, 4.0)]
+    drinks = [create_mock_item("Oat Milk Latte", "Beverage", 180.0, "Vegan", 1, 4.0)]
+    desserts = [create_mock_item("Cacao Truffles", "Dessert", 190.0, "Vegan", 1, 4.0)]
+    mains = [create_mock_item("Vegan Pesto Pasta", "Main Course", 340.0, "Vegan", 1, 4.0)]
+
+    vegan_items = sides + drinks + desserts + mains
+    constraints = ExtractedConstraints(
+        people_count=2,
+        vegetarian_count=0,
+        vegan_count=2,
+        non_vegetarian_count=0,
+        max_budget=1000.0,
+        preferred_categories=["Main Course"],
+        excluded_dishes=["Green Juice"],
+    )
+    result = optimize_menu([], vegan_items, [], constraints)
+    assert result["status"] == "Optimal"
+    categories = [entry["item"].category for entry in result["items"]]
+    assert "Main Course" in categories
+    assert any(entry["item"].name == "Vegan Pesto Pasta" for entry in result["items"])
+
+
+def test_anti_monopoly_caps_on_beverages_and_sides():
+    """Verify that beverages and sides are capped so peripheral items cannot flood the cart."""
+    drinks = [
+        create_mock_item("Drink A", "Beverage", 50.0, "Vegan", 1, 5.0),
+        create_mock_item("Drink B", "Beverage", 50.0, "Vegan", 1, 5.0),
+    ]
+    sides = [
+        create_mock_item("Side A", "Side", 50.0, "Vegan", 1, 5.0),
+        create_mock_item("Side B", "Side", 50.0, "Vegan", 1, 5.0),
+    ]
+    mains = [create_mock_item("Main A", "Main Course", 200.0, "Vegan", 1, 4.0)]
+
+    vegan_items = drinks + sides + mains
+    constraints = ExtractedConstraints(
+        people_count=2,
+        vegetarian_count=0,
+        vegan_count=2,
+        non_vegetarian_count=0,
+        max_budget=1000.0,
+    )
+    result = optimize_menu([], vegan_items, [], constraints)
+    assert result["status"] == "Optimal"
+    total_drinks = sum(entry["quantity"] for entry in result["items"] if entry["item"].category == "Beverage")
+    total_sides = sum(entry["quantity"] for entry in result["items"] if entry["item"].category == "Side")
+    assert total_drinks <= 2, f"Beverages should not exceed total_people (2), got {total_drinks}"
+    assert total_sides <= 1, f"Sides should not exceed ceil(total_people/2) (1), got {total_sides}"
+

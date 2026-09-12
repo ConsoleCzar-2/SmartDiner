@@ -1,4 +1,4 @@
-import json
+import time
 from google import genai
 from pydantic import BaseModel
 from app.config import settings
@@ -8,9 +8,10 @@ class IntentResult(BaseModel):
     intent: str
     reason: str
 
-async def classify_intent(user_message: str) -> IntentResult:
+async def classify_intent(user_message: str) -> tuple[IntentResult, dict]:
     """
     Classifies the user's intent into ORDER, MODIFICATION, GREETING, OFF_TOPIC, or ADVERSARIAL.
+    Returns (IntentResult, telemetry_dict).
     """
     client = genai.Client(api_key=settings.gemini_api_key)
     
@@ -21,6 +22,7 @@ async def classify_intent(user_message: str) -> IntentResult:
             prop.pop("default", None)
             prop.pop("title", None)
 
+    t0 = time.perf_counter()
     response = await client.aio.models.generate_content(
         model="gemini-3.5-flash-lite",
         contents=f"User: {user_message}",
@@ -31,9 +33,28 @@ async def classify_intent(user_message: str) -> IntentResult:
             "temperature": 0.0,
         }
     )
+    t1 = time.perf_counter()
+    latency_ms = round((t1 - t0) * 1000, 2)
+
+    usage = getattr(response, "usage_metadata", None)
+    prompt_tokens = getattr(usage, "prompt_token_count", 0) or 0
+    completion_tokens = getattr(usage, "candidates_token_count", 0) or 0
+    total_tokens = getattr(usage, "total_token_count", 0) or (prompt_tokens + completion_tokens)
+
+    telemetry = {
+        "step": "intent_classifier",
+        "model": "gemini-3.5-flash-lite",
+        "temperature": 0.0,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+        "latency_ms": latency_ms,
+        "prompt_preview": user_message[:200]
+    }
 
     try:
-        return IntentResult.model_validate_json(response.text)
+        result = IntentResult.model_validate_json(response.text)
     except Exception:
-        # Fallback if something goes wrong
-        return IntentResult(intent="ORDER", reason="Fallback")
+        result = IntentResult(intent="ORDER", reason="Fallback")
+
+    return result, telemetry

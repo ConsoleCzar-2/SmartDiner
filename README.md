@@ -23,10 +23,14 @@
 SmartDiner acts as a fully autonomous concierge for restaurants. Unlike traditional LLM wrappers that hallucinate prices or forget fatal allergies, SmartDiner strictly separates natural language understanding from deterministic business logic. It uses a **multi-layered governed AI pipeline**:
 
 1. **Intent Classification:** Identifies if the user is asking a question, making an order, modifying an order, or being adversarial. Questions are instantly routed to a lightweight Q&A LLM, bypassing heavy math.
-2. **Context-Aware Extraction:** Parses natural language ("remove the paneer, add chicken, under ₹3000") into strict JSON requirements using Gemini 3.5 Flash Lite, maintaining awareness of the user's ongoing draft cart.
-3. **SQL Deterministic Filter:** Hard-filters the menu at the database level to ensure 100% allergen safety. Unsafe items (e.g. cross-contamination triggers) never reach the AI.
-4. **ILP Optimization Solver:** Uses Integer Linear Programming (PuLP) to find the absolute mathematically optimal combination of dishes that satisfy the budget, dietary ratios, party size, and requested dish swaps.
-5. **Grounded Explanation:** The LLM summarizes the mathematically-verified cart back to the user in a natural, hallucination-free response.
+2. **Context-Aware Extraction:** Parses natural language into strict JSON requirements using Gemini 3.5 Flash Lite, maintaining awareness of the user's ongoing draft cart.
+3. **Multi-Venue Resolver:** Supports Restaurant-Agnostic Concierge mode directly from the landing page navbar. Finds, compares, and ranks dishes across multiple restaurants simultaneously.
+4. **SQL Deterministic Filter:** Hard-filters the menu at the database level to ensure 100% allergen safety. Unsafe items never reach the AI.
+5. **ILP Optimization Solver:** Uses Integer Linear Programming (PuLP) with course diversity bonuses, soft structure penalties, and anti-monopoly carb caps to mathematically guarantee budget and party nutrition.
+6. **Grounded Explanation:** The LLM summarizes the mathematically-verified cart back to the user in a natural, hallucination-free response.
+7. **Enriched WORM Audit Logging:** Asynchronously captures compiled SQL queries, cache hits, exact token counts, and solver bounds into immutable GCS Object-Locked blobs.
+8. **Admin AI Business Intelligence:** Dual-source conversational BI engine in the admin dashboard synthesizing data from PostgreSQL analytics and GCS audit trails with strict RBAC.
+9. **Dual-Tier In-Memory Caching:** Synchronized 300s TTL caching layer featuring **L1 Catalog Cache** (eliminating N+1 relational joins during whole-menu browsing) and **L2 Dynamic Filter Cache** (deterministic constraint-hashed memory cache for sub-millisecond AI chat refinements), governed by centralized system constants in `backend/app/constants.py`.
 
 This multi-step governed architecture guarantees **100% safety and compliance** while maintaining conversational flexibility, live cart editing, and state persistence.
 
@@ -34,8 +38,10 @@ This multi-step governed architecture guarantees **100% safety and compliance** 
 
 ## Technical Stack
 
-- **Frontend:** Next.js 15, React, TailwindCSS, Framer Motion (Glassmorphic UI)
+- **Frontend:** Next.js 14/15, React 18, TailwindCSS, Framer Motion, React Markdown (Glassmorphic UI)
 - **Backend:** FastAPI, Python 3.12, SQLAlchemy 2.0 (Async), PuLP (Linear Programming)
+- **Constants Layer:** `backend/app/constants.py` (Unified TTLs, platform currency, dining taxonomy)
+- **Caching:** Dual-Tier in-memory cache (L1 Catalog + L2 Dynamic Constraint Filter)
 - **Database:** PostgreSQL 16 (Strict constraints, JSONB state, UUIDv7 keys)
 - **AI/LLM:** Google Gemini 3.5 Flash Lite (Structured Outputs)
 - **Cloud/Infra:** Google Cloud Storage (GCS) for images & WORM compliance logging
@@ -78,6 +84,21 @@ npm install
 npm run dev
 ```
 
+### 4. Database Seeding & Migration
+To reset and populate the database with the 6 authentic restaurants (Spice Garden, Dragon's Wok, The Grand Kitchen, South Spice Heritage, Tokyo Umami, Green Haven Cafe) and 99 unique dishes:
+```bash
+cd backend
+
+# Truncate tables cleanly
+python -m seed.truncate_db
+
+# Seed fresh data
+python -m seed.seed_data
+
+# (Optional) Seed remote Render production database:
+python -m seed.seed_render --url="postgresql://<USER>:<PASSWORD>@<HOST>.render.com/<DB_NAME>" --yes
+```
+
 ### 5. Google Cloud Credentials (Optional, for GCS features)
 
 The `gcp-credentials.json` file in the repo root is **gitignored** and is only required if you want to exercise Google Cloud Storage features (image uploads, WORM audit-log retrieval). If you need it:
@@ -86,13 +107,6 @@ The `gcp-credentials.json` file in the repo root is **gitignored** and is only r
 - For local-only development you can skip this entirely — the backend will run fine without GCS, GCS-dependent endpoints will simply error out.
 
 > **Do not commit this file as well as the other environment variables.** It is in `.gitignore` for a reason. If you accidentally leak a service-account key, rotate it immediately in the GCP console.
-
-### 4. Database Seeding
-To populate the database with sample restaurants, users, and rich menu items, run the data seeder:
-```bash
-cd backend
-python -m seed.seed_data
-```
 
 ---
 

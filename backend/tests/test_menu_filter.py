@@ -103,32 +103,29 @@ pytestmark = pytest.mark.asyncio
 
 async def test_filter_availability(db_session, seed_data):
     rest_id = seed_data
-    # Empty constraints (default)
     constraints = ExtractedConstraints()
     
-    result = await filter_menu_items(db_session, rest_id, constraints)
+    result, meta = await filter_menu_items(db_session, rest_id, constraints)
     
-    # Should be 3 available items (item_1, item_2, item_4). item_3 is out of stock.
     assert len(result["all"]) == 3
     assert not any(item.id == "item-3" for item in result["all"])
+    assert "compiled_sql" in meta
+    assert isinstance(meta["duration_ms"], float)
 
 async def test_filter_spice_logic(db_session, seed_data):
     rest_id = seed_data
-    # Asking for Low spice should exclude Medium (item_1) and High (item_2)
     constraints = ExtractedConstraints(max_spice_level="Low")
     
-    result = await filter_menu_items(db_session, rest_id, constraints)
+    result, meta = await filter_menu_items(db_session, rest_id, constraints)
     
-    # Only item_4 (None) should pass
     assert len(result["all"]) == 1
     assert result["all"][0].id == "item-4"
 
 async def test_filter_deep_allergens(db_session, seed_data):
     rest_id = seed_data
-    # Excluding Dairy should remove item_1 (which contains Cheese, which is linked to Dairy)
     constraints = ExtractedConstraints(excluded_allergens=["Dairy"])
     
-    result = await filter_menu_items(db_session, rest_id, constraints)
+    result, meta = await filter_menu_items(db_session, rest_id, constraints)
     
     assert len(result["all"]) == 2
     assert not any(item.id == "item-1" for item in result["all"])
@@ -137,22 +134,19 @@ async def test_filter_deep_allergens(db_session, seed_data):
 
 async def test_filter_budget_ceiling(db_session, seed_data):
     rest_id = seed_data
-    # Budget of 300 should exclude item_2 (400)
     constraints = ExtractedConstraints(max_budget=300.0)
     
-    result = await filter_menu_items(db_session, rest_id, constraints)
+    result, meta = await filter_menu_items(db_session, rest_id, constraints)
     
     assert len(result["all"]) == 2
     assert not any(item.id == "item-2" for item in result["all"])
 
 async def test_filter_cuisines(db_session, seed_data):
     rest_id = seed_data
-    # Only Chinese
     constraints = ExtractedConstraints(preferred_cuisines=["Chinese"])
     
-    result = await filter_menu_items(db_session, rest_id, constraints)
+    result, meta = await filter_menu_items(db_session, rest_id, constraints)
     
-    # Only item_2 is Chinese
     assert len(result["all"]) == 1
     assert result["all"][0].id == "item-2"
 
@@ -160,8 +154,36 @@ async def test_veg_nonveg_split(db_session, seed_data):
     rest_id = seed_data
     constraints = ExtractedConstraints()
     
-    result = await filter_menu_items(db_session, rest_id, constraints)
+    result, meta = await filter_menu_items(db_session, rest_id, constraints)
     
     assert len(result["veg"]) == 2
     assert len(result["nonveg"]) == 1
     assert result["nonveg"][0].id == "item-2"
+
+async def test_menu_filter_cache_hit_and_miss(db_session, seed_data):
+    from app.services.menu_filter import clear_menu_filter_cache
+    clear_menu_filter_cache()
+    
+    rest_id = seed_data
+    constraints = ExtractedConstraints(max_budget=500.0, max_spice_level="Medium")
+    
+    # 1. First call -> Cache MISS
+    res1, meta1 = await filter_menu_items(db_session, rest_id, constraints)
+    assert "cache_event" in meta1
+    assert meta1["cache_event"]["status"] == "MISS"
+    assert meta1["cache_event"]["hit"] is False
+    assert meta1["cache_event"]["action"] == "STORED"
+    
+    # 2. Second call with same constraints -> Cache HIT
+    res2, meta2 = await filter_menu_items(db_session, rest_id, constraints)
+    assert "cache_event" in meta2
+    assert meta2["cache_event"]["status"] == "HIT"
+    assert meta2["cache_event"]["hit"] is True
+    assert meta2["cache_event"]["duration_ms"] < 5.0
+    assert len(res2["all"]) == len(res1["all"])
+    
+    # 3. Evict cache -> Next call is MISS
+    clear_menu_filter_cache(rest_id)
+    res3, meta3 = await filter_menu_items(db_session, rest_id, constraints)
+    assert meta3["cache_event"]["status"] == "MISS"
+

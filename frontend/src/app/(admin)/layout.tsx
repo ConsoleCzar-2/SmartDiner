@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, MessageSquare, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, MessageSquare, LogOut, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import "../globals.css";
 
@@ -65,6 +65,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             >
                                 <LayoutDashboard className="h-4 w-4" />
                                 Dashboard
+                            </Link>
+                            <Link
+                                href="/admin/insights"
+                                className={cn(
+                                    "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition",
+                                    pathname.startsWith("/admin/insights")
+                                        ? "bg-[#f6a61d]/15 text-[#f6a61d] font-semibold border border-[#f6a61d]/30"
+                                        : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                                )}
+                            >
+                                <Sparkles className="h-4 w-4 text-[#f6a61d]" />
+                                AI Insights
                             </Link>
                             <Link
                                 href="/admin/conversations"

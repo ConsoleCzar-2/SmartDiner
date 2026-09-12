@@ -67,6 +67,7 @@ __pycache__/
 *.md
 !README.md
 !docs/*.md
+!backend/tests/*.md
 
 #Dev Testing
 backend/export_local_db.py
