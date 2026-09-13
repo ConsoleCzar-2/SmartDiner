@@ -31,6 +31,9 @@ SmartDiner acts as a fully autonomous concierge for restaurants. Unlike traditio
 7. **Enriched WORM Audit Logging:** Asynchronously captures compiled SQL queries, cache hits, exact token counts, and solver bounds into immutable GCS Object-Locked blobs.
 8. **Admin AI Business Intelligence:** Dual-source conversational BI engine in the admin dashboard synthesizing data from PostgreSQL analytics and GCS audit trails with strict RBAC.
 9. **Dual-Tier In-Memory Caching:** Synchronized 300s TTL caching layer featuring **L1 Catalog Cache** (eliminating N+1 relational joins during whole-menu browsing) and **L2 Dynamic Filter Cache** (deterministic constraint-hashed memory cache for sub-millisecond AI chat refinements), governed by centralized system constants in `backend/app/constants.py`.
+10. **Server-Sent Events (SSE) Streaming & Generator-First Core:** Real-time event streaming (`POST /api/chat/stream` & `POST /api/admin/insights/chat/stream`) powered by a unified canonical generator core with thin unary adapters (`POST /api/chat`), yielding phase status pills, instant cart population, and token-by-token explanation generation with zero duplicate logic.
+11. **Overhauled Executive Analytics:** Dynamic time-range filtering (`12h`, `today`, `7d`, `30d`, `90d`, `all`, and `custom` date bounds), continuous zero-filled time series with cubic Bézier spline interpolation and interactive crosshairs, dish volume leaderboards with venue attribution, and solver feasibility health telemetry.
+12. **Modular Governed Architecture:** Cleanly decomposed single-responsibility pipeline stages (state management, restaurant resolution, intent handling, ILP meal formulation, and database persistence) ensuring maintainability and 100% compliance.
 
 This multi-step governed architecture guarantees **100% safety and compliance** while maintaining conversational flexibility, live cart editing, and state persistence.
 
@@ -38,12 +41,12 @@ This multi-step governed architecture guarantees **100% safety and compliance** 
 
 ## Technical Stack
 
-- **Frontend:** Next.js 14/15, React 18, TailwindCSS, Framer Motion, React Markdown (Glassmorphic UI)
-- **Backend:** FastAPI, Python 3.12, SQLAlchemy 2.0 (Async), PuLP (Linear Programming)
+- **Frontend:** Next.js 14/15, React 18, TailwindCSS, Framer Motion, React Markdown, Server-Sent Events (SSE) (Glassmorphic UI)
+- **Backend:** FastAPI, Python 3.12, SQLAlchemy 2.0 (Async), PuLP (Linear Programming), Server-Sent Events (SSE)
 - **Constants Layer:** `backend/app/constants.py` (Unified TTLs, platform currency, dining taxonomy)
 - **Caching:** Dual-Tier in-memory cache (L1 Catalog + L2 Dynamic Constraint Filter)
 - **Database:** PostgreSQL 16 (Strict constraints, JSONB state, UUIDv7 keys)
-- **AI/LLM:** Google Gemini 3.5 Flash Lite (Structured Outputs)
+- **AI/LLM:** Google Gemini 3.5 Flash Lite (Structured Outputs & Async Streaming)
 - **Cloud/Infra:** Google Cloud Storage (GCS) for images & WORM compliance logging
 
 ---

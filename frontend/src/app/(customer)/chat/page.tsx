@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { CartPanel } from "@/components/cart-panel";
 import { ChatPanel } from "@/components/chat-panel";
-import { sendChatMessage, fetchRestaurants, abandonActiveChat } from "@/lib/api";
+import { streamChatMessage, fetchRestaurants, abandonActiveChat } from "@/lib/api";
 import type {
     ChatResponse,
     ConversationMessage,
@@ -53,6 +53,7 @@ function ChatContent() {
     });
     const [crossMeta, setCrossMeta] = useState<CrossRestaurantMeta | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [activeStatus, setActiveStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const applyActiveChat = (chatData: any, matchedRestaurant?: any) => {
@@ -154,65 +155,113 @@ function ChatContent() {
 
     const submit = async (message: string) => {
         setError(null);
+        const userMsgId = crypto.randomUUID();
+        const assistantMsgId = crypto.randomUUID();
+
         setMessages((current) => [
             ...current,
             {
-                id: crypto.randomUUID(),
+                id: userMsgId,
                 role: "user",
                 content: message,
                 createdAt: new Date().toISOString(),
             },
+            {
+                id: assistantMsgId,
+                role: "assistant",
+                content: "",
+                createdAt: new Date().toISOString(),
+            },
         ]);
         setIsLoading(true);
-        try {
-            const response: ChatResponse = await sendChatMessage({
-                message,
-                restaurant_id: restaurant.id || null,
-                conversation_id: conversationId,
-            });
-            setConversationId(response.conversation_id);
-            setRecommendation(response.recommendation);
-            if (response.extracted_constraints) {
-                setConstraints(response.extracted_constraints);
-            }
-            setCrossMeta(response.cross_restaurant_meta || null);
-            if (response.restaurant_id && response.restaurant_name && response.restaurant_id !== restaurant.id) {
-                const newRestId = response.restaurant_id;
-                const newRestName = response.restaurant_name;
-                fetchRestaurants().then(allR => {
-                    const match = allR.find(r => r.id === newRestId);
-                    setRestaurant({
-                        id: newRestId,
-                        name: newRestName,
-                        image_url: match?.image_url || null
-                    });
-                }).catch(() => {
-                    setRestaurant({
-                        id: newRestId,
-                        name: newRestName,
-                        image_url: null
-                    });
-                });
-                window.history.replaceState(null, '', `/chat?restaurant_id=${newRestId}`);
-            }
+        setActiveStatus("Initiating recommendation pipeline...");
 
-            setMessages((current) => [
-                ...current,
+        try {
+            await streamChatMessage(
                 {
-                    id: crypto.randomUUID(),
-                    role: "assistant",
-                    content: response.explanation,
-                    createdAt: new Date().toISOString(),
+                    message,
+                    restaurant_id: restaurant.id || null,
+                    conversation_id: conversationId,
                 },
-            ]);
+                {
+                    onStatus: (data) => {
+                        setActiveStatus(data.message);
+                    },
+                    onCart: (data) => {
+                        setRecommendation(data.recommendation);
+                    },
+                    onToken: (token) => {
+                        setMessages((current) =>
+                            current.map((m) =>
+                                m.id === assistantMsgId
+                                    ? { ...m, content: m.content + token }
+                                    : m
+                            )
+                        );
+                    },
+                    onDone: (data) => {
+                        const response = data.response;
+                        setConversationId(response.conversation_id);
+                        setRecommendation(response.recommendation);
+                        if (response.extracted_constraints) {
+                            setConstraints(response.extracted_constraints);
+                        }
+                        setCrossMeta(response.cross_restaurant_meta || null);
+                        if (
+                            response.restaurant_id &&
+                            response.restaurant_name &&
+                            response.restaurant_id !== restaurant.id
+                        ) {
+                            const newRestId = response.restaurant_id;
+                            const newRestName = response.restaurant_name;
+                            fetchRestaurants()
+                                .then((allR) => {
+                                    const match = allR.find((r) => r.id === newRestId);
+                                    setRestaurant({
+                                        id: newRestId,
+                                        name: newRestName,
+                                        image_url: match?.image_url || null,
+                                    });
+                                })
+                                .catch(() => {
+                                    setRestaurant({
+                                        id: newRestId,
+                                        name: newRestName,
+                                        image_url: null,
+                                    });
+                                });
+                            window.history.replaceState(null, "", `/chat?restaurant_id=${newRestId}`);
+                        }
+
+                        // Ensure assistant message contains the full final explanation
+                        setMessages((current) =>
+                            current.map((m) =>
+                                m.id === assistantMsgId
+                                    ? { ...m, content: response.explanation }
+                                    : m
+                            )
+                        );
+                        setActiveStatus(null);
+                    },
+                    onError: (err) => {
+                        setError(err.message);
+                        setActiveStatus(null);
+                        setMessages((current) =>
+                            current.filter((m) => m.id !== assistantMsgId || m.content.trim() !== "")
+                        );
+                    },
+                }
+            );
         } catch (requestError) {
             setError(
                 requestError instanceof Error
                     ? requestError.message
-                    : "Unable to reach the recommendation service.",
+                    : "Unable to reach the recommendation service."
             );
+            setActiveStatus(null);
         } finally {
             setIsLoading(false);
+            setActiveStatus(null);
         }
     };
 
@@ -317,6 +366,7 @@ function ChatContent() {
                 <ChatPanel
                     messages={messages}
                     isLoading={isLoading}
+                    activeStatus={activeStatus}
                     error={error}
                     onSend={submit}
                 />

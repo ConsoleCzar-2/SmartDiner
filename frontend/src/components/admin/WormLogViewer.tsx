@@ -397,7 +397,7 @@ export default function WormLogViewer({ log, viewMode }: { log: any; viewMode: '
                                         <span className="text-[11px] font-mono text-zinc-400 flex items-center gap-1.5">
                                             <Terminal className="h-3.5 w-3.5 text-zinc-400" /> PostgreSQL Parameterized Query
                                         </span>
-                                        <CopyButton text={sq.compiled_sql} label="Copy SQL" />
+                                        <CopyButton text={sq.compiled_sql} label="Copy SQL Query" />
                                     </div>
                                     <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-relaxed text-zinc-200 selection:bg-amber-500/30">
                                         {sq.compiled_sql}

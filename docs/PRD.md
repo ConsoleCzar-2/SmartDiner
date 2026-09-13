@@ -20,15 +20,22 @@ SmartDiner is designed to bridge this gap. It is an AI-powered, deterministic re
 - **Conversational Q&A:** Users can ask questions about their current draft cart (e.g., "what did you change?") and receive grounded answers without unintentionally modifying their order.
 - **Mathematical Optimization:** The system automatically maximizes the overall "value" of the order (rating × serving size) while strictly adhering to all user constraints.
 
+- **Server-Sent Events (SSE) Real-Time Streaming:** Provides token-by-token streaming responses with animated pipeline phase status indicators. Crucially, dispatches the structured cart immediately upon ILP solver completion so customers see their recommended menu without waiting for the natural-language explanation to finish generating.
+- **Global Cross-Restaurant Concierge:** Supports querying without a pre-selected venue (`restaurant_id: null`), performing multi-venue candidate package evaluations to find optimal dining options across all culinary establishments.
+
 ### 3.2. Visual Menu Browser & Live Cart
 - Customers can visually browse the restaurant's offerings categorized by type (e.g., Starters, Main Course, Beverages).
 - Items must display clear dietary tags (Vegetarian/Vegan/Non-Vegetarian) and spice level indicators.
-- **Live Order Ticket:** An interactive cart updates instantly with manual item changes. It displays dynamic tracking for total allocated budget, remaining budget (highlighted in red if exceeded), and breakdowns for Veg, Vegan, Non-Veg, and Total People.
+- **Live Order Ticket:** An interactive cart updates instantly with manual item changes. It displays dynamic tracking for total allocated budget, remaining budget (highlighted in red if exceeded), and breakdowns for Veg, Vegan, Non-Veg, and Total People in INR (`₹`).
 - **Session Persistence:** Draft orders, constraints, and chat history automatically persist and reload across browser refreshes.
 
-### 3.3. Restaurant Admin Dashboard
-- **Real-Time Metrics:** Admins can view active orders, total revenue, and veg vs. non-veg breakdowns.
-- **Audit Logs:** Full transparency into customer-AI conversations, showing exactly what constraints the LLM extracted and what the ILP solver outputted.
+### 3.3. Restaurant Admin Dashboard & Business Intelligence Suite
+- **Dynamic Time-Range Analytics:** Operational KPI filtering across `12h`, `today`, `7d`, `30d`, `90d`, `all`, and `custom` date ranges with comparative period-over-period growth rates.
+- **Continuous Zero-Filled Time Series:** High-fidelity cubic Bézier spline trajectories with interactive crosshairs, tooltips, and volume switching between revenue (`₹`) and orders.
+- **Top Dishes Leaderboard with Venue Attribution:** Volume and revenue ranking displaying dish names, categories, and hosting restaurant venues.
+- **Solver Feasibility Health & Category Breakdown:** Live telemetry tracking ILP feasibility percentages, optimal vs. infeasible solve ratios, and category revenue distributions.
+- **Admin AI Insights:** Conversational business intelligence engine synthesizing live PostgreSQL metrics and historical GCS WORM audit logs with provenance source badges.
+- **Immutable WORM Audit Logging:** Full transparency into customer-AI interactions via Google Cloud Storage Object-Locked immutable JSON records.
 
 ## 4. System Requirements
 

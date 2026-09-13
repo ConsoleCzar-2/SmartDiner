@@ -82,6 +82,35 @@ Returned when the ILP solver confirms no mathematical combination of items exist
 }
 ```
 
+### `POST /api/chat/stream`
+Real-time streaming recommendation endpoint powered by Server-Sent Events (SSE). Streams pipeline progress status, dispatches the verified recommendation cart immediately upon ILP solver completion, and streams grounded explanation tokens progressively from Gemini 3.5 Flash Lite.
+
+#### Media Type
+`text/event-stream`
+
+#### Headers
+- `Cache-Control`: `no-cache`
+- `Connection`: `keep-alive`
+- `X-Accel-Buffering`: `no`
+
+#### Event Types
+1. **`event: status`**: Dispatched during pipeline phase transitions.
+   ```json
+   { "step": "filtering_menu", "message": "Filtering menu items by allergens, dietary preferences, and availability..." }
+   ```
+2. **`event: cart`**: Dispatched immediately when the ILP solver computes the optimal combination.
+   ```json
+   { "recommendation": { "status": "Optimal", "items": [ ... ], "computed_total": 1420.0, ... } }
+   ```
+3. **`event: token`**: Incremental natural-language explanation token chunk.
+   ```json
+   { "content": "Here is a safe, optimal combination..." }
+   ```
+4. **`event: done`**: Dispatched upon completion with the full response and telemetry payload.
+   ```json
+   { "response": { "conversation_id": "...", ... }, "telemetry": { ... } }
+   ```
+
 ### `GET /api/chat/active`
 Retrieves the most recent active conversation for the user at a given restaurant, allowing the frontend to seamlessly restore the chat history, constraints, and the live draft cart after a page refresh.
 
@@ -215,11 +244,92 @@ Requires a valid JWT token (`Authorization: Bearer <token>`). The user must have
 
 ---
 
-### `POST /api/admin/insights/chat`
-Conversational Executive Business Intelligence engine. Routes natural language inquiries from restaurant and platform admins across dual data sources: live PostgreSQL database analytics and historical immutable GCS WORM audit logs.
+### `GET /api/admin/metrics`
+Aggregates high-level KPI business metrics for the specified time range, computing current values and percentage growth compared to the preceding equivalent period.
 
-#### Authentication
-Requires a valid JWT token (`Authorization: Bearer <token>`). RBAC enforced: `RESTAURANT_ADMIN` calls are strictly scoped to their assigned `restaurant_id`; `PLATFORM_ADMIN` can query globally.
+#### Query Parameters
+- `time_range` (string, optional, default: `"30d"`): Supported values are `"12h"`, `"24h"`, `"today"`, `"7d"`, `"30d"`, `"90d"`, `"all"`, and `"custom"`.
+- `start_date` (string, optional, e.g. `"2026-09-01"`): Start date bound when `time_range="custom"`.
+- `end_date` (string, optional, e.g. `"2026-09-15"`): End date bound when `time_range="custom"`.
+
+#### Success Response (200 OK)
+```json
+{
+  "total_orders": 42,
+  "total_revenue": 58400.0,
+  "avg_order_value": 1390.48,
+  "total_conversations": 65,
+  "time_range": "30d",
+  "revenue_growth_pct": 14.5,
+  "orders_growth_pct": 10.5,
+  "conversations_growth_pct": 8.3
+}
+```
+
+---
+
+### `GET /api/admin/analytics`
+Deep operational and business analytics suite including continuous zero-filled revenue and order trends, dish volume leaderboards with restaurant venue attribution, category distributions, solver feasibility health, and floor order logs.
+
+#### Query Parameters
+- `time_range` (string, optional, default: `"30d"`): Supported values: `"12h"`, `"24h"`, `"today"`, `"7d"`, `"30d"`, `"90d"`, `"all"`, `"custom"`.
+- `start_date` (string, optional, e.g. `"2026-09-01"`): Start date bound when `time_range="custom"`.
+- `end_date` (string, optional, e.g. `"2026-09-15"`): End date bound when `time_range="custom"`.
+
+#### Success Response (200 OK)
+```json
+{
+  "time_range": "30d",
+  "total_revenue": 58400.0,
+  "total_orders": 42,
+  "avg_order_value": 1390.48,
+  "active_conversations": 65,
+  "revenue_growth_pct": 14.5,
+  "orders_growth_pct": 10.5,
+  "conversations_growth_pct": 8.3,
+  "daily_trends": [
+    { "date": "2026-09-01", "revenue": 3400.0, "orders": 3 }
+  ],
+  "top_dishes": [
+    { 
+      "name": "Butter Chicken", 
+      "restaurant_name": "Spice Garden",
+      "category": "Main Course", 
+      "quantity_sold": 28, 
+      "revenue": 12600.0 
+    }
+  ],
+  "category_distribution": [
+    { "category": "Main Course", "quantity_sold": 45, "revenue": 21000.0, "percentage": 48.5 }
+  ],
+  "solver_health": {
+    "total_solves": 85,
+    "optimal_count": 82,
+    "infeasible_count": 3,
+    "feasibility_rate_pct": 96.5,
+    "avg_solve_time_ms": 12.4
+  },
+  "allergen_frequency": {
+    "Peanuts": 18,
+    "Dairy": 12
+  },
+  "recent_orders": [
+    {
+      "id": "01a09420-...",
+      "restaurant_name": "Spice Garden",
+      "total_amount": 1650.0,
+      "status": "COMPLETED",
+      "created_at": "2026-09-12T14:30:00Z",
+      "items_count": 3
+    }
+  ]
+}
+```
+
+---
+
+### `POST /api/admin/insights/chat`
+Conversational Executive Business Intelligence endpoint. Synthesizes answers from PostgreSQL database metrics and GCS WORM audit logs with role-based access control.
 
 #### Request Body
 ```json
@@ -231,20 +341,32 @@ Requires a valid JWT token (`Authorization: Bearer <token>`). RBAC enforced: `RE
 #### Success Response (200 OK)
 ```json
 {
-  "response": "Based on PostgreSQL sales data, your top 3 revenue dishes are Butter Chicken (INR 14,200), Paneer Tikka (INR 8,700), and Dal Makhani (INR 6,400). According to historical GCS audit logs, the most frequent allergen requests are Peanuts (34% of filtered sessions) followed by Dairy (22%).",
+  "answer": "Based on PostgreSQL sales data, your top 3 revenue dishes are Butter Chicken (₹14,200), Paneer Tikka (₹8,700), and Dal Makhani (₹6,400). According to historical GCS audit logs, the most frequent allergen requests are Peanuts followed by Dairy.",
+  "target_source": "BOTH",
   "data_sources": [
     "PostgreSQL Database",
     "GCS WORM Audit Logs"
   ],
-  "classification": "HYBRID",
-  "context_summary": {
-    "total_revenue": 29300.0,
-    "top_dishes_count": 3,
-    "audit_logs_analyzed": 48
+  "metrics_summary": {
+    "orders": { "total_orders": 42, "total_revenue": "₹58,400.00" },
+    "gcs_records": 85,
+    "total_tokens": 124000
   }
 }
 ```
 
-#### Error Responses
-- **`401 Unauthorized`**: Missing or invalid admin JWT token.
-- **`500 Internal Server Error`**: Failure in database retrieval or Gemini synthesis.
+---
+
+### `POST /api/admin/insights/chat/stream`
+Server-Sent Events streaming endpoint for conversational business intelligence. Streams classification status, data retrieval updates, token-by-token insight answer from Gemini 3.5 Flash Lite, and completion frames.
+
+#### Media Type
+`text/event-stream`
+
+#### Event Types
+1. **`event: status`**: Dispatched during query classification and data querying stages.
+2. **`event: metadata`**: Dispatches target sources (`POSTGRES`, `GCS`, `BOTH`) and metrics summary.
+3. **`event: token`**: Incremental natural-language executive answer chunk.
+4. **`event: done`**: Dispatched upon completion with the full synthesized answer and metadata.
+
+

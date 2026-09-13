@@ -1,4 +1,14 @@
-import type { ChatRequest, ChatResponse, RestaurantResponse } from "@/types";
+import type { 
+    ChatRequest, 
+    ChatResponse, 
+    RestaurantResponse, 
+    AdminAnalyticsResponse, 
+    StreamStatusEvent, 
+    StreamCartEvent, 
+    StreamDoneEvent, 
+    StreamAdminMetadataEvent, 
+    StreamAdminDoneEvent 
+} from "@/types";
 
 function resolveApiBaseUrl(): string {
     const configuredUrl =
@@ -32,6 +42,90 @@ export async function sendChatMessage(payload: ChatRequest): Promise<ChatRespons
     }
     return response.json() as Promise<ChatResponse>;
 }
+
+export async function streamChatMessage(
+    payload: ChatRequest,
+    callbacks: {
+        onStatus?: (data: StreamStatusEvent) => void;
+        onCart?: (data: StreamCartEvent) => void;
+        onToken?: (token: string) => void;
+        onDone?: (data: StreamDoneEvent) => void;
+        onError?: (err: Error) => void;
+    }
+): Promise<void> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const detail = await response.text().catch(() => "");
+            throw new Error(detail || `Streaming request failed (${response.status})`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+            throw new Error("Response body is not readable");
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const blocks = buffer.split("\n\n");
+            buffer = blocks.pop() || "";
+
+            for (const block of blocks) {
+                if (!block.trim()) continue;
+                const lines = block.split("\n");
+                let eventType = "message";
+                let dataStr = "";
+
+                for (const line of lines) {
+                    if (line.startsWith("event:")) {
+                        eventType = line.replace("event:", "").trim();
+                    } else if (line.startsWith("data:")) {
+                        dataStr = line.replace("data:", "").trim();
+                    }
+                }
+
+                if (!dataStr) continue;
+
+                try {
+                    const parsed = JSON.parse(dataStr);
+                    if (eventType === "status" && callbacks.onStatus) {
+                        callbacks.onStatus(parsed);
+                    } else if (eventType === "cart" && callbacks.onCart) {
+                        callbacks.onCart(parsed);
+                    } else if (eventType === "token" && callbacks.onToken) {
+                        callbacks.onToken(parsed.content || "");
+                    } else if (eventType === "done" && callbacks.onDone) {
+                        callbacks.onDone(parsed);
+                    }
+                } catch (parseError) {
+                    console.error("Failed to parse SSE JSON payload:", parseError, dataStr);
+                }
+            }
+        }
+    } catch (err: any) {
+        if (callbacks.onError) {
+            callbacks.onError(err);
+        } else {
+            throw err;
+        }
+    }
+}
+
 
 export async function fetchActiveChat(restaurantId?: string | null): Promise<any> {
     const token = typeof window !== "undefined" ? localStorage.getItem("userToken") : null;
@@ -80,6 +174,90 @@ export async function sendAdminInsightChat(message: string): Promise<any> {
     }
     return response.json();
 }
+
+export async function streamAdminInsightChat(
+    message: string,
+    callbacks: {
+        onStatus?: (data: { step: string; message: string }) => void;
+        onMetadata?: (data: StreamAdminMetadataEvent) => void;
+        onToken?: (token: string) => void;
+        onDone?: (data: StreamAdminDoneEvent) => void;
+        onError?: (err: Error) => void;
+    }
+): Promise<void> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/insights/chat/stream`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ message })
+        });
+
+        if (!response.ok) {
+            const detail = await response.text().catch(() => "");
+            throw new Error(detail || `Streaming insight failed (${response.status})`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+            throw new Error("Response body is not readable");
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const blocks = buffer.split("\n\n");
+            buffer = blocks.pop() || "";
+
+            for (const block of blocks) {
+                if (!block.trim()) continue;
+                const lines = block.split("\n");
+                let eventType = "message";
+                let dataStr = "";
+
+                for (const line of lines) {
+                    if (line.startsWith("event:")) {
+                        eventType = line.replace("event:", "").trim();
+                    } else if (line.startsWith("data:")) {
+                        dataStr = line.replace("data:", "").trim();
+                    }
+                }
+
+                if (!dataStr) continue;
+
+                try {
+                    const parsed = JSON.parse(dataStr);
+                    if (eventType === "status" && callbacks.onStatus) {
+                        callbacks.onStatus(parsed);
+                    } else if (eventType === "metadata" && callbacks.onMetadata) {
+                        callbacks.onMetadata(parsed);
+                    } else if (eventType === "token" && callbacks.onToken) {
+                        callbacks.onToken(parsed.content || "");
+                    } else if (eventType === "done" && callbacks.onDone) {
+                        callbacks.onDone(parsed);
+                    }
+                } catch (parseError) {
+                    console.error("Failed to parse SSE JSON payload:", parseError, dataStr);
+                }
+            }
+        }
+    } catch (err: any) {
+        if (callbacks.onError) {
+            callbacks.onError(err);
+        } else {
+            throw err;
+        }
+    }
+}
+
 
 export async function fetchRestaurants(): Promise<RestaurantResponse[]> {
     const response = await fetch(`${API_BASE_URL}/api/restaurants`);
@@ -142,8 +320,16 @@ export async function adminLogin(credentials: any): Promise<any> {
     return response.json();
 }
 
-export async function fetchAdminMetrics(token: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/api/admin/metrics`, {
+export async function fetchAdminMetrics(
+    token: string,
+    timeRange: string = "30d",
+    startDate?: string,
+    endDate?: string
+): Promise<any> {
+    let url = `${API_BASE_URL}/api/admin/metrics?time_range=${timeRange}`;
+    if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+    const response = await fetch(url, {
         headers: { "Authorization": `Bearer ${token}` }
     });
     if (!response.ok) {
@@ -151,6 +337,25 @@ export async function fetchAdminMetrics(token: string): Promise<any> {
     }
     return response.json();
 }
+
+export async function fetchAdminAnalytics(
+    token: string,
+    timeRange: string = "30d",
+    startDate?: string,
+    endDate?: string
+): Promise<AdminAnalyticsResponse> {
+    let url = `${API_BASE_URL}/api/admin/analytics?time_range=${timeRange}`;
+    if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+    const response = await fetch(url, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) {
+        throw new Error("Failed to fetch analytics");
+    }
+    return response.json() as Promise<AdminAnalyticsResponse>;
+}
+
 
 export async function fetchAdminConversations(token: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/api/admin/conversations`, {

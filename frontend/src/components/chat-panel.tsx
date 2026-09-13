@@ -11,6 +11,7 @@ interface ChatPanelProps {
     messages: ConversationMessage[];
     isLoading: boolean;
     error: string | null;
+    activeStatus?: string | null;
     onSend: (message: string) => void;
 }
 
@@ -18,6 +19,7 @@ export function ChatPanel({
     messages,
     isLoading,
     error,
+    activeStatus,
     onSend,
 }: ChatPanelProps) {
     const [input, setInput] = useState("");
@@ -50,7 +52,7 @@ export function ChatPanel({
                 </span>
             </div>
 
-            <MessageList messages={messages} isLoading={isLoading} error={error} />
+            <MessageList messages={messages} isLoading={isLoading} error={error} activeStatus={activeStatus} />
 
             <div className="border-t border-white/8 p-4">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-2 focus-within:border-[#f6a61d]/60">

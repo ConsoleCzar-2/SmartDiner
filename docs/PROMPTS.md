@@ -25,19 +25,22 @@ Located in `backend/app/prompts/constraint_extraction.py`, this prompt acts as t
 **Issue:** We discovered that if we strictly defined `max_budget` as a required integer, and the user said "budget is not an issue", the LLM would panic and hallucinate a default value (e.g., `3000`) just to satisfy the strict schema requirement.
 **Solution:** We optimized the Pydantic schema generation logic. We dynamically stripped `anyOf` constraints from the OpenAPI schema and explicitly injected `"nullable": True` for fields like `max_budget` and `preferred_cuisines`. This allows the LLM to safely output `null` when constraints are unmentioned or explicitly unbounded, allowing the math solver to accurately run without an artificial ceiling.
 
-## 3. Explanation & Answer Generation Prompts
+## 3. Explanation & Answer Generation Prompts (Generator-First Architecture)
 
-Located in `backend/app/services/explanation_generator.py`, these prompts act as the system's "mouth".
+Located in `backend/app/services/explanation_generator.py`, these prompts act as the system's "mouth". Prompt formatting is completely decoupled into pure builder functions (`build_explanation_context` and `build_question_answer_prompt`), and generation follows a **Generator-First Architecture**:
+- Canonical async generators (`stream_explanation` and `stream_question_answer`) stream chunks using `client.aio.models.generate_content_stream` (Gemini 3.5 Flash Lite).
+- Unary functions (`generate_explanation` and `generate_question_answer`) act as thin adapters that drain the generators in memory and return `(text, telemetry)` directly.
 
-### Order Explanations (`EXPLANATION_SYSTEM_PROMPT`)
-- **Grounding:** The prompt is heavily grounded. It is provided with a JSON dump of the solver's exact mathematical output (total cost, items chosen, quantities, remaining budget).
+### Order Explanations (`EXPLANATION_SYSTEM_PROMPT` & `build_explanation_context`)
+- **Grounding:** The prompt is heavily grounded. It is provided with a structured text dump of the solver's exact mathematical output (status, total cost, items chosen with quantities and prices, remaining budget in INR).
 - **Anti-Hallucination Directive:** The system prompt explicitly states: *"CRITICAL: DO NOT invent items, prices, or rationales that are not present in the SOLVER_OUTPUT."*
+- **Streaming Implementation (`stream_explanation`):** Streams tokens in real time to `POST /api/chat/stream`, reporting prompt tokens, completion tokens, total tokens, and latency upon completion.
 
-### Conversational Answers (`generate_question_answer`)
+### Conversational Answers (`build_question_answer_prompt` & `stream_question_answer`)
 - When the Intent Classifier flags a `QUESTION` (e.g. "what exactly did you change?"), this lightweight prompt receives the `Current Draft Cart` and the `Conversation History`.
 - It answers the user contextually without modifying the order or invoking the mathematical solver.
 - **Tone:** Instructed to be concise (1-3 sentences) and hospitable.
-- **Infeasibility Handling:** If the math solver returns `Infeasible` (e.g., trying to feed 10 people on ₹100), the solver output explicitly says it failed. The LLM is instructed to politely explain exactly *why* it failed based on the constraints (e.g., "I couldn't find a combination to feed 10 people for just ₹100. Would you be willing to increase the budget?").
+- **Infeasibility Handling:** If the math solver returns `Infeasible` (e.g., trying to feed 10 people on ₹100), the solver output explicitly details why it failed. The LLM is instructed to politely explain the exact reason based on the constraints (e.g., "I couldn't find a combination to feed 10 people for just ₹100. Would you be willing to increase the budget?").
 
 ## 4. Admin AI Insights Prompt (`ADMIN_INSIGHTS_SYSTEM_PROMPT`)
 

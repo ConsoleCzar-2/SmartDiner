@@ -135,6 +135,30 @@ To eliminate redundant database operations while maintaining strict data consist
   - `SUPPORTED_ALLERGENS`, `SPICE_ORDER`, `CUISINE_SYNONYMS`
 - **Atomic Invalidation:** When restaurant administrators modify dishes in `backend/app/routers/admin_menu.py`, the system evicts both L1 (`MENU_CACHE.pop()`) and L2 (`clear_menu_filter_cache()`) entries, guaranteeing zero stale data.
 
+### 3.5. Server-Sent Events (SSE) Streaming & Real-Time Reactivity
+To eliminate monolithic request-response wait times and drastically improve perceived application latency:
+- **Customer Streaming (`POST /api/chat/stream`):** Rather than blocking for 4-8 seconds while both solver optimization and LLM explanation complete sequentially, the backend emits fine-grained SSE frames:
+  1. `event: status`: Broadcasts pipeline progress (`intent_and_constraints`, `resolving_restaurant`, `filtering_menu`, `optimizing_meal`, `generating_explanation`).
+  2. `event: cart`: Dispatches the structured `RecommendationResult` immediately when the ILP solver completes. The client populates the order cart and calculates remaining budget instantly.
+  3. `event: token`: Emits incremental explanation text chunks from `client.aio.models.generate_content_stream` (Gemini 3.5 Flash Lite).
+  4. `event: done`: Dispatches complete `ChatResponse` model dump, while enqueuing GCS WORM audit logging asynchronously via `asyncio.create_task`.
+- **Admin Insights Streaming (`POST /api/admin/insights/chat/stream`):** Emits status updates during dual-source classification and SQL/GCS data fetching, followed by token streaming for the executive business synthesis.
+
+### 3.6. Generator-First Streaming Core & Modular Pipeline Architecture
+To eliminate code duplication across streaming and unary response generators while preventing monolithic service functions:
+- **Streaming Core as Single Source of Truth:**
+  - In `backend/app/services/explanation_generator.py`, prompt building logic is extracted into pure functions (`build_explanation_context`, `build_question_answer_prompt`). The canonical generators `stream_explanation` and `stream_question_answer` perform Gemini API streaming. Non-streaming functions (`generate_explanation`, `generate_question_answer`) are thin unary adapters that drain the generator and return `(text, telemetry)`.
+  - In `backend/app/services/recommendation_pipeline.py`, the core recommendation workflow is written once in `_execute_recommendation_pipeline`. `stream_chat_pipeline` formats events into SSE text frames, and `process_chat_request` drains the generator until the `done` event.
+- **Modular Pipeline Decomposition:**
+  The recommendation pipeline is decomposed into single-responsibility helper functions, bringing the top-level orchestrator down to ~80 lines:
+  1. `_load_conversation_state`: Loads conversation history, current constraints, and restaurant context.
+  2. `_resolve_restaurant_context`: Handles restaurant resolution, switching (cart reset, constraint pruning), cross-restaurant comparisons, and ambiguity handling.
+  3. `_ensure_conversation`: Synchronizes conversation records in PostgreSQL.
+  4. `_handle_non_recommendation_intent`: Manages `QUESTION`, `GREETING`, `OFF_TOPIC`, and `ADVERSARIAL` short-circuits.
+  5. `_build_recommendation_result`: Transforms ILP output into `RecommendedItem` models, computes dietary breakdowns, and calculates remaining budget.
+  6. `_save_conversation_state`: Appends messages, saves constraints and cart, and commits to database.
+  7. `_dispatch_gcs_audit`: Safely enqueues asynchronous GCS WORM audit logging.
+
 ## 4. Technology Stack
 
 ### Frontend

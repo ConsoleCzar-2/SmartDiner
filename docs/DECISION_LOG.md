@@ -89,4 +89,26 @@ This document records the 10 most critical architectural and engineering decisio
 4. Grounded infeasibility telemetry in actual constraint bottlenecks (candidate item counts, allergen/cuisine filters) rather than defaulting to budget advice.
 **Rationale:** In specialized cuisines with pervasive allergens (e.g. Italian menus where 80%+ of dishes contain dairy), combining allergen exclusions with spice ceilings and cuisine filters decimated candidate items down to 3 dishes. Forcing an omnivorous party to order 7 meat servings when only 1 meat dish survived with a cap of 3 portions resulted in an unavoidable mathematical infeasibility regardless of budget (even up to ₹50,000). Decoupling non-veg quotas to available capacity and adapting portion caps ensures robust recommendations across all menu depths.
 
+## 20. Server-Sent Events (SSE) for Pipeline Streaming Over WebSockets
+**Decision:** Selected Server-Sent Events (SSE) via FastAPI's `StreamingResponse(media_type="text/event-stream")` rather than bidirectional WebSockets for conversational recommendations and admin business intelligence.
+**Rationale:** The recommendation lifecycle is fundamentally unidirectional: the client submits a request payload, and the backend progressively outputs status updates, deterministic cart calculations, and token chunks. SSE runs over native HTTP with zero upgrade overhead, automatically handles connection reconnects, passes seamlessly through cloud load balancers and reverse proxies without buffering (`X-Accel-Buffering: no`), and enables instantaneous cart population (`event: cart`) before LLM text generation begins.
+
+## 21. Admin Dashboard Analytics Overhaul & Scope Boundary
+**Decision:** Overhauled the admin dashboard to compute dynamic time-range analytics (`today`, `7d`, `30d`, `90d`, `all`), interactive SVG trendlines, dish volume leaderboards, and solver feasibility health, while deferring admin audit logging to a subsequent phase.
+**Rationale:** Restaurant operators needed immediate visibility into floor revenue trajectories, average order values, and solver feasibility rates. Admin audit logging requires dedicated storage lifecycle policies and was benched to keep the implementation focused and deliver high-impact operational intelligence without unnecessary complexity.
+
+## 22. Generator-First Streaming Core with Unary Adapters & Modular Pipeline Architecture
+**Decision:** We refactored both `explanation_generator.py` and `recommendation_pipeline.py` into a "Streaming Core with Unary Adapter" pattern:
+1. Canonical streaming generators (`stream_explanation`, `stream_question_answer`, `_execute_recommendation_pipeline`) serve as the single source of truth for all business logic, prompt construction, constraint merging, SQL filtering, ILP solving, and DB commits.
+2. Non-streaming functions (`generate_explanation`, `process_chat_request`) are thin unary adapters that drain the generators in memory and return final typed payloads directly.
+3. Decomposed the monolithic ~500-line pipeline generator into dedicated single-responsibility helper functions (`_load_conversation_state`, `_resolve_restaurant_context`, `_ensure_conversation`, `_handle_non_recommendation_intent`, `_build_recommendation_result`, `_save_conversation_state`, and `_dispatch_gcs_audit`), bringing the coordinator down to ~80 lines.
+**Rationale:** Maintaining separate parallel implementations of response generators and pipeline orchestrators introduced code duplication (>430 redundant lines) and a high risk of behavioral divergence. Establishing the streaming generator as the single source of truth guarantees identical business logic across both `POST /api/chat` (unary REST) and `POST /api/chat/stream` (SSE streaming) while retaining 100% backward compatibility and testability.
+
+## 23. Continuous Zero-Filled Time Series & Cubic Spline Interpolation for Operational Analytics
+**Decision:** In `backend/app/routers/admin.py` and `frontend/src/components/admin/analytics-chart.tsx`, we:
+1. Added continuous zero-filled time-series generation for hourly (`12h`, `today`) and daily (`7d`, `30d`, `90d`, `custom`) buckets so charts render continuous trajectories even when order history is sparse.
+2. Implemented smooth cubic Bézier spline interpolation (`createSmoothSpline`) with multi-stop gradients, drop shadows, interactive tracking crosshairs, and dynamic X-axis stepping.
+3. Added custom date range filtering (`start_date`, `end_date`) and a `12h` operational convenience filter.
+4. Joined the `Restaurant` table to surface venue attribution directly in top dish leaderboards.
+**Rationale:** Standard SQL `GROUP BY` returns disjoint rows only for days with placed orders, which produced single flat lines or jagged discontinuities across new venues. Contiguous zero-filling paired with cubic spline curves ensures high-fidelity visual trajectories and prevents rendering errors (such as `NaN` attribute errors when switching metric views).
 

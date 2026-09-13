@@ -13,7 +13,7 @@ This report documents the verification and quality benchmarking of the SmartDine
 
 ## 2. Integer Linear Programming (ILP) Solver Verification & Dietary Semantics
 
-The PuLP CBC solver and dietary semantics engine were tested across 17 deterministic test suites (`backend/tests/test_optimizer.py` and `backend/tests/test_dietary_semantics.py`).
+The PuLP CBC solver and dietary semantics engine were tested across 18 deterministic test suites (`backend/tests/test_optimizer.py` and `backend/tests/test_dietary_semantics.py`).
 
 | Test Suite | Scenario | Expected Outcome | Result |
 |---|---|---|---|
@@ -33,11 +33,12 @@ The PuLP CBC solver and dietary semantics engine were tested across 17 determini
 | `test_dinner_for_two_prioritizes_main_course` | 2 people ordering dinner | Main Course prioritized over cheaper sides | [PASS] |
 | `test_preferred_category_strictly_enforces_category` | Preference for Main Course | Physically selects Main Course dish | [PASS] |
 | `test_anti_monopoly_caps_on_beverages_and_sides` | Party of 2 with cheap sides/drinks | Beverages <= 2, Sides <= 1 | [PASS] |
+| `test_optimizer_heavily_filtered_small_menu_group_order` | Heavily constrained small candidate menu | Dynamic capacity adjustment & feasible solve | [PASS] |
 | `test_vegetarian_accepts_vegan_dishes` | Vegetarian diner queries menu | Receives both vegetarian and vegan dishes | [PASS] |
 | `test_vegan_strictly_rejects_vegetarian` | Vegan diner queries menu | Never receives dairy/vegetarian dishes | [PASS] |
 
 **Unit Test Status:** 18 / 18 PASSED (100%)
-**Full Backend Test Suite:** 44 / 44 PASSED (100%)
+**Full Backend Test Suite:** 51 / 51 PASSED (100%)
 
 ---
 
@@ -115,21 +116,24 @@ Evaluated using `backend/tests/test_llm_judge.py` with Gemini 3.5 Flash Lite as 
 
 ---
 
-## 5. Full Backend Regression Suite (38 Tests)
+## 5. Full Backend Regression Suite (51 Tests)
 
-The entire backend test suite was executed to ensure zero regressions across pipeline components, cache mechanics, restaurant switching, and business intelligence reporting.
+The entire backend test suite was executed to ensure zero regressions across pipeline components, Server-Sent Events (SSE) streaming generators, cache mechanics, restaurant switching, admin operational analytics, and business intelligence reporting.
 
 | Test File | Focus Area | Tests | Status |
 |---|---|---|---|
+| `tests/test_admin_analytics.py` | Time bounds (`12h`, `today`, `custom`), continuous zero-filling, growth metrics, dish volume leaderboards with venue attribution, solver health | 2 | 2 / 2 PASSED |
 | `tests/test_admin_insights.py` | Dual-source aggregation, INR financial calculation, prompt grounding | 2 | 2 / 2 PASSED |
 | `tests/test_constraint_extractor.py` | Edge-case constraint parsing, nullability, colloquial handling | 8 | 8 / 8 PASSED |
 | `tests/test_constraint_merger.py` | Deterministic state delta merging and dish exclusion preservation | 4 | 4 / 4 PASSED |
+| `tests/test_dietary_semantics.py` | Formal vegan vs. vegetarian hierarchy verification, zero cross-contamination | 2 | 2 / 2 PASSED |
 | `tests/test_llm_accuracy.py` | 15 cross-category golden test benchmarks | 1 | 1 / 1 PASSED |
 | `tests/test_menu_filter.py` | Dynamic SQL filtering, allergen exclusion, L2 cache HIT/MISS/EVICTION | 7 | 7 / 7 PASSED |
-| `tests/test_optimizer.py` | PuLP CBC solver, meal diversity bonuses, soft penalties, carb caps | 10 | 10 / 10 PASSED |
-| `tests/test_pipeline_e2e.py` | End-to-end multi-stage pipeline execution and WORM payload generation | 5 | 5 / 5 PASSED |
+| `tests/test_optimizer.py` | PuLP CBC solver, meal diversity bonuses, soft penalties, carb caps, anti-monopoly | 16 | 16 / 16 PASSED |
+| `tests/test_pipeline_e2e.py` | End-to-end multi-stage pipeline execution, modular helper execution, and WORM payload generation | 5 | 5 / 5 PASSED |
 | `tests/test_restaurant_switching.py` | Cross-venue resolution, ambiguity detection, venue state transitions | 1 | 1 / 1 PASSED |
-| **Total** | **All Backend Test Suites** | **38** | **38 / 38 PASSED (100%)** |
+| `tests/test_streaming.py` | Server-Sent Events (SSE) streaming generators (`stream_explanation`, `stream_chat_pipeline`, `stream_admin_insight`) | 3 | 3 / 3 PASSED |
+| **Total** | **All Backend Test Suites** | **51** | **51 / 51 PASSED (100%)** |
 
 ---
 
@@ -142,22 +146,25 @@ cd backend
 $env:PYTHONPATH="."
 $env:PYTHONIOENCODING="utf-8"
 
-# 1. Run all 38 backend regression tests
+# 1. Run all 51 backend regression tests
 pytest -v
 
-# 2. Run deterministic ILP unit tests
+# 2. Run streaming and operational analytics tests
+pytest tests/test_streaming.py tests/test_admin_analytics.py -v
+
+# 3. Run deterministic ILP unit tests (16 tests)
 pytest tests/test_optimizer.py -v
 
-# 3. Run cache verification tests
+# 4. Run cache verification tests
 pytest tests/test_menu_filter.py -v
 
-# 4. Run Admin AI Insights tests
+# 5. Run Admin AI Insights tests
 pytest tests/test_admin_insights.py -v
 
-# 5. Run LLM Golden Suite accuracy benchmark
+# 6. Run LLM Golden Suite accuracy benchmark
 pytest tests/test_llm_accuracy.py -v -s
 
-# 6. Run LLM-as-Judge qualitative harness
+# 7. Run LLM-as-Judge qualitative harness
 python tests/test_llm_judge.py
 ```
 

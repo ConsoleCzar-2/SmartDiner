@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Sparkles, Send, Bot, User, Database, ShieldCheck, Loader2, ArrowRight } from "lucide-react";
-import { sendAdminInsightChat } from "@/lib/api";
+import { streamAdminInsightChat } from "@/lib/api";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 
 interface InsightMessage {
@@ -35,6 +35,7 @@ export default function AdminInsightsPage() {
     ]);
     const [inputMessage, setInputMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [activeStatus, setActiveStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -58,25 +59,68 @@ export default function AdminInsightsPage() {
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
-        setMessages((prev) => [...prev, userMsg]);
+        const assistantMsgId = `assistant-${Date.now()}`;
+        const assistantMsg: InsightMessage = {
+            id: assistantMsgId,
+            role: "assistant",
+            content: "",
+            targetSource: undefined,
+            dataSources: [],
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        setMessages((prev) => [...prev, userMsg, assistantMsg]);
         setInputMessage("");
         setIsLoading(true);
+        setActiveStatus("Classifying query intent and target data source...");
 
         try {
-            const data = await sendAdminInsightChat(text);
-            const assistantMsg: InsightMessage = {
-                id: `assistant-${Date.now()}`,
-                role: "assistant",
-                content: data.answer,
-                targetSource: data.target_source,
-                dataSources: data.data_sources || [],
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            setMessages((prev) => [...prev, assistantMsg]);
+            await streamAdminInsightChat(text, {
+                onStatus: (data) => {
+                    setActiveStatus(data.message);
+                },
+                onMetadata: (data) => {
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === assistantMsgId
+                                ? { ...m, targetSource: data.target_source, dataSources: data.data_sources }
+                                : m
+                        )
+                    );
+                },
+                onToken: (token) => {
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === assistantMsgId
+                                ? { ...m, content: m.content + token }
+                                : m
+                        )
+                    );
+                },
+                onDone: (data) => {
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === assistantMsgId
+                                ? { ...m, content: data.answer, targetSource: data.target_source, dataSources: data.data_sources }
+                                : m
+                        )
+                    );
+                    setActiveStatus(null);
+                },
+                onError: (err) => {
+                    setError(err.message || "Failed to generate business insights.");
+                    setActiveStatus(null);
+                    setMessages((prev) =>
+                        prev.filter((m) => m.id !== assistantMsgId || m.content.trim() !== "")
+                    );
+                }
+            });
         } catch (err: any) {
             setError(err.message || "Failed to generate business insights.");
+            setActiveStatus(null);
         } finally {
             setIsLoading(false);
+            setActiveStatus(null);
         }
     };
 
@@ -182,9 +226,9 @@ export default function AdminInsightsPage() {
                 ))}
 
                 {isLoading && (
-                    <div className="flex items-center gap-3 text-zinc-400 text-xs pl-2">
+                    <div className="flex items-center gap-3 text-[#f6a61d] text-xs pl-2">
                         <Loader2 className="h-4 w-4 animate-spin text-[#f6a61d]" />
-                        <span>Analyzing data sources and formulating executive insights...</span>
+                        <span>{activeStatus || "Analyzing data sources and formulating executive insights..."}</span>
                     </div>
                 )}
 

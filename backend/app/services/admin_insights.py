@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, and_
 from google import genai
@@ -182,9 +183,17 @@ async def fetch_postgres_metrics(db: AsyncSession, admin_user: AdminUser) -> dic
     return metrics
 
 
+from concurrent.futures import ThreadPoolExecutor
+
+_GCS_METRICS_CACHE: dict = {}
+_GCS_METRICS_CACHE_TIME: dict = {}
+_GCS_CACHE_TTL: float = 120.0  # 2-minute in-memory cache
+
+
 def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
     """
     Reads recent GCS audit logs and computes telemetry aggregates.
+    Uses concurrent blob downloading and 120-second in-memory caching.
     """
     if not settings.gcs_audit_bucket_name:
         return {
@@ -197,15 +206,35 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
 
     is_scoped = admin_user.role == "RESTAURANT_ADMIN" and admin_user.restaurant_id
     scoped_rest_id = str(admin_user.restaurant_id) if is_scoped else None
+    cache_key = f"{admin_user.role}_{scoped_rest_id or 'ALL'}"
+
+    # Return cached data if fresh
+    now = time.time()
+    if cache_key in _GCS_METRICS_CACHE and (now - _GCS_METRICS_CACHE_TIME.get(cache_key, 0)) < _GCS_CACHE_TTL:
+        return _GCS_METRICS_CACHE[cache_key]
 
     try:
         client = get_storage_client()
         bucket = client.bucket(settings.gcs_audit_bucket_name)
         
-        # Read latest 40 blobs
-        blobs = list(bucket.list_blobs(prefix="audit_logs/", max_results=40))
+        # Read latest 20 blobs
+        blobs = list(bucket.list_blobs(prefix="audit_logs/", max_results=20))
         if not blobs:
-            return {"status": "EMPTY", "message": "No audit logs found in bucket.", "records_count": 0}
+            res = {"status": "EMPTY", "message": "No audit logs found in bucket.", "records_count": 0}
+            _GCS_METRICS_CACHE[cache_key] = res
+            _GCS_METRICS_CACHE_TIME[cache_key] = now
+            return res
+
+        def _download_blob(b):
+            try:
+                return json.loads(b.download_as_bytes())
+            except Exception as parse_err:
+                logger.debug(f"Error parsing blob {b.name}: {parse_err}")
+                return None
+
+        # Download blobs concurrently using ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            parsed_blobs = list(executor.map(_download_blob, blobs))
 
         total_prompt_tokens = 0
         total_completion_tokens = 0
@@ -222,9 +251,11 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
         total_cache_misses = 0
         cache_latencies = []
 
-        for blob in blobs:
+        for content in parsed_blobs:
+            if not content:
+                continue
+
             try:
-                content = json.loads(blob.download_as_string())
                 # Enforce RBAC
                 if scoped_rest_id and str(content.get("restaurant_id")) != scoped_rest_id:
                     continue
@@ -283,13 +314,13 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
                 elif solver_stat == "Infeasible":
                     solver_infeasible += 1
             except Exception as parse_err:
-                logger.debug(f"Error parsing blob {blob.name}: {parse_err}")
+                logger.debug(f"Error parsing audit content: {parse_err}")
                 continue
 
         avg_lat = round(sum(latencies) / len(latencies), 2) if latencies else 0.0
         avg_cache_lat = round(sum(cache_latencies) / len(cache_latencies), 3) if cache_latencies else 0.0
 
-        return {
+        res = {
             "status": "SUCCESS",
             "audit_records_analyzed": records_counted,
             "total_tokens_consumed": total_tokens,
@@ -315,8 +346,13 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
             },
             "recent_audit_queries": recent_audit_queries
         }
+        _GCS_METRICS_CACHE[cache_key] = res
+        _GCS_METRICS_CACHE_TIME[cache_key] = now
+        return res
     except Exception as e:
         logger.error(f"GCS audit retrieval error: {e}")
+        if cache_key in _GCS_METRICS_CACHE:
+            return _GCS_METRICS_CACHE[cache_key]
         return {
             "status": "ERROR",
             "error_detail": str(e),
@@ -386,3 +422,103 @@ async def generate_admin_insight(
             "total_tokens": gcs_data.get("total_tokens_consumed") if gcs_data else None
         }
     }
+
+
+def sse_admin_pack(event: str, data: dict) -> str:
+    """Formats an event and JSON data into a Server-Sent Events text frame."""
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+async def stream_admin_insight(
+    db: AsyncSession,
+    admin_user: AdminUser,
+    message: str
+):
+    """
+    Streaming administrative business intelligence via Server-Sent Events.
+    Yields:
+      - 'status': intermediate notifications ('classifying', 'retrieving', 'synthesizing')
+      - 'metadata': resolved data sources and metric summaries
+      - 'token': streaming insight text tokens
+      - 'done': full response payload
+    """
+    yield sse_admin_pack("status", {
+        "step": "classifying",
+        "message": "Classifying query intent and target data source..."
+    })
+
+    target_source = await classify_admin_query(message)
+
+    yield sse_admin_pack("status", {
+        "step": "retrieving",
+        "message": f"Querying {target_source} data sources with role-based access control..."
+    })
+
+    postgres_data = None
+    gcs_data = None
+    sources_used = []
+
+    if target_source in ("POSTGRES", "BOTH"):
+        postgres_data = await fetch_postgres_metrics(db, admin_user)
+        sources_used.append("PostgreSQL Database")
+
+    if target_source in ("GCS", "BOTH"):
+        gcs_data = await asyncio.to_thread(fetch_gcs_audit_metrics, admin_user)
+        sources_used.append("GCS WORM Audit Logs")
+
+    metrics_summary = {
+        "orders": postgres_data.get("orders_summary") if postgres_data else None,
+        "gcs_records": gcs_data.get("audit_records_analyzed") if gcs_data else None,
+        "total_tokens": gcs_data.get("total_tokens_consumed") if gcs_data else None
+    }
+
+    yield sse_admin_pack("metadata", {
+        "target_source": target_source,
+        "data_sources": sources_used,
+        "metrics_summary": metrics_summary
+    })
+
+    yield sse_admin_pack("status", {
+        "step": "synthesizing",
+        "message": "Synthesizing executive insight with Gemini 3.5 Flash Lite..."
+    })
+
+    context_sections = []
+    if postgres_data:
+        context_sections.append(f"=== POSTGRESQL BUSINESS & OPERATIONAL DATA ===\n{json.dumps(postgres_data, indent=2)}")
+    if gcs_data:
+        context_sections.append(f"=== GCS WORM AUDIT & TELEMETRY LOGS ===\n{json.dumps(gcs_data, indent=2)}")
+
+    full_context = "\n\n".join(context_sections)
+
+    prompt = (
+        f"DATA_CONTEXT:\n"
+        f"{full_context}\n\n"
+        f"ADMIN USER QUESTION: {message}\n\n"
+        f"Provide a structured, executive answer strictly grounded in the DATA_CONTEXT above."
+    )
+
+    client = genai.Client(api_key=settings.gemini_api_key)
+    response_stream = await client.aio.models.generate_content_stream(
+        model="gemini-3.5-flash-lite",
+        contents=prompt,
+        config={
+            "system_instruction": ADMIN_INSIGHTS_SYSTEM_PROMPT,
+            "temperature": 0.2
+        }
+    )
+
+    full_text = []
+    async for chunk in response_stream:
+        text = chunk.text or ""
+        if text:
+            full_text.append(text)
+            yield sse_admin_pack("token", {"content": text})
+
+    yield sse_admin_pack("done", {
+        "answer": "".join(full_text),
+        "target_source": target_source,
+        "data_sources": sources_used,
+        "metrics_summary": metrics_summary
+    })
+

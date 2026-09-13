@@ -9,9 +9,10 @@ interface MessageListProps {
     messages: ConversationMessage[];
     isLoading: boolean;
     error: string | null;
+    activeStatus?: string | null;
 }
 
-export function MessageList({ messages, isLoading, error }: MessageListProps) {
+export function MessageList({ messages, isLoading, error, activeStatus }: MessageListProps) {
     return (
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
             {messages.map((message, index) => (
@@ -37,9 +38,9 @@ export function MessageList({ messages, isLoading, error }: MessageListProps) {
                 </motion.div>
             ))}
             {isLoading && (
-                <div className="flex items-center gap-2 text-sm text-zinc-400">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-[#f6a61d]" />{" "}
-                    Screening menu constraints…
+                <div className="flex items-center gap-2.5 rounded-xl border border-[#f6a61d]/20 bg-[#f6a61d]/5 px-3.5 py-2 text-xs font-medium text-[#f6a61d]">
+                    <span className="h-2 w-2 animate-ping rounded-full bg-[#f6a61d]" />
+                    <span>{activeStatus || "Screening menu constraints..."}</span>
                 </div>
             )}
             {error && (

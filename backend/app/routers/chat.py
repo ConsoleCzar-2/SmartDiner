@@ -1,14 +1,14 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Optional
 from uuid import UUID
-from fastapi import BackgroundTasks
 
 from app.database import get_db
 from app.schemas.recommendation import ChatRequest, ChatResponse
-from app.services.recommendation_pipeline import process_chat_request
+from app.services.recommendation_pipeline import process_chat_request, stream_chat_pipeline
 from app.services.auth import get_current_user
 from app.models.user import User
 from app.models.conversation import Conversation
@@ -56,6 +56,31 @@ async def chat(
     )
     
     return response
+
+
+@router.post("/chat/stream")
+async def chat_stream(
+    request: ChatRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Streaming recommendation endpoint via Server-Sent Events (SSE).
+    Streams status updates ('status'), instant ILP cart ('cart'), token-by-token explanation ('token'), and completion ('done').
+    """
+    async def event_generator():
+        async for frame in stream_chat_pipeline(request, db, current_user.id):
+            yield frame
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 @router.get("/chat/active")
