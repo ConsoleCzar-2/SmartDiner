@@ -59,6 +59,11 @@ async def upload_audit_log_to_gcs(
             )
             
             logger.info(f"Successfully uploaded WORM audit log to gs://{settings.gcs_audit_bucket_name}/{blob_name}")
+            try:
+                from app.services.admin_insights import invalidate_gcs_metrics_cache
+                invalidate_gcs_metrics_cache()
+            except Exception:
+                pass
         except Exception as e:
             logger.error("Failed to upload audit log to GCS: %s", e)
 

@@ -26,6 +26,9 @@ This Wiki serves as the comprehensive documentation for the engineering, archite
 - [**Prompt Engineering & LLM Integration**](https://github.com/ConsoleCzar-2/SmartDiner/wiki/PROMPTS)
   Details on how Gemini 3.5 Flash Lite is constrained via structured JSON, few-shot prompting, and state merging.
 
+- [**Testing & Quality Benchmarking**](https://github.com/ConsoleCzar-2/SmartDiner/wiki/TEST_REPORT)
+  Comprehensive test report covering backend regression tests, mathematical solver verification, golden accuracy benchmarks, LLM judge scoring, and frontend static analysis.
+
 - [**Engineering Decision Log**](https://github.com/ConsoleCzar-2/SmartDiner/wiki/DECISION_LOG)
   A historical record of the critical technical choices made, alternative architectures rejected, and the rationale behind them.
 

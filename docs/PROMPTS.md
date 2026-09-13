@@ -11,7 +11,7 @@ Located in `backend/app/prompts/intent_classification.py`, this acts as the fron
 - **Short-Circuiting**: By isolating intent early, the system can instantly reject adversarial prompts, or route `QUESTION` intents directly to a lightweight Q&A LLM call without running the heavy SQL/ILP mathematical pipeline.
 - **Output**: Strict JSON containing `intent` and `reason`.
 
-## 2. Constraint Extraction Prompt (`SYSTEM_PROMPT`)
+## 2. Constraint Extraction Prompt (`CONSTRAINT_EXTRACTION_SYSTEM_PROMPT`)
 
 Located in `backend/app/prompts/constraint_extraction.py`, this prompt acts as the system's "ears" for orders and modifications. Its sole job is to translate messy, conversational human input into a strict Pydantic JSON structure that the SQL and ILP math engines can read.
 
@@ -44,7 +44,7 @@ Located in `backend/app/services/explanation_generator.py`, these prompts act as
 
 ## 4. Admin AI Insights Prompt (`ADMIN_INSIGHTS_SYSTEM_PROMPT`)
 
-Located in `backend/app/prompts/admin_insights_prompt.py`, this prompt powers the executive business intelligence chat interface (`/admin/insights`).
+Located in `backend/app/prompts/admin_insights.py`, this prompt powers the executive business intelligence chat interface (`/admin/insights`).
 
 ### Prompt Strategy
 - **Dual-Source Ingestion:** Ingests live aggregated PostgreSQL metrics (revenue sums, orders count, top dishes, active restaurants) and GCS WORM audit log summaries (solver statuses, token burn, latency percentiles).
@@ -55,7 +55,7 @@ Located in `backend/app/prompts/admin_insights_prompt.py`, this prompt powers th
 
 ## 5. Universal Markdown & Zero-Emoji Communication Standard
 
-Across all AI prompts in the SmartDiner platform (`constraint_extraction.py`, `explanation.py`, `admin_insights_prompt.py`):
+Across all AI prompts in the SmartDiner platform (`constraint_extraction.py`, `explanation.py`, `admin_insights.py`):
 1. **Markdown Formatting:** All prompts instruct the model to produce standard GitHub-flavored markdown. The frontend renders this safely through `frontend/src/components/ui/markdown-content.tsx`.
 2. **Zero-Emoji Policy:** System prompts explicitly prohibit emoji usage (e.g., smiles, food emojis, sparkles). Only standard colored badge UI elements rendered natively by the frontend are permitted where necessary.
 3. **Currency Grounding:** All financial quantities are grounded in INR (`₹`), preventing hallucinated foreign currency symbols.

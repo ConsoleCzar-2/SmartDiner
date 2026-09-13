@@ -340,3 +340,44 @@ def test_optimizer_heavily_filtered_small_menu_group_order():
     assert "Starter" in categories
     assert "Main Course" in categories
 
+
+def test_optimizer_respects_category_min_counts(mock_menu):
+    """Verify that specifying category_min_counts enforces the required minimum item quantities."""
+    veg_items, vegan_items, nonveg_items = mock_menu
+    
+    # User specifically requests at least 2 Bread items
+    constraints = ExtractedConstraints(
+        people_count=2,
+        vegetarian_count=0,
+        vegan_count=0,
+        non_vegetarian_count=2,
+        max_budget=2000.0,
+        category_min_counts={"Bread": 2}
+    )
+    result = optimize_menu(veg_items, vegan_items, nonveg_items, constraints)
+    assert result["status"] == "Optimal"
+    
+    bread_count = sum(entry["quantity"] for entry in result["items"] if entry["item"].category == "Bread")
+    assert bread_count >= 2
+
+
+def test_optimizer_respects_dish_quantities(mock_menu):
+    """Verify that specifying dish_quantities enforces the exact dish count."""
+    veg_items, vegan_items, nonveg_items = mock_menu
+    
+    constraints = ExtractedConstraints(
+        people_count=2,
+        vegetarian_count=0,
+        vegan_count=0,
+        non_vegetarian_count=2,
+        max_budget=2000.0,
+        dish_quantities={"Naan": 2}
+    )
+    result = optimize_menu(veg_items, vegan_items, nonveg_items, constraints)
+    assert result["status"] == "Optimal"
+    
+    naan_entry = next((e for e in result["items"] if "naan" in e["item"].name.lower()), None)
+    assert naan_entry is not None
+    assert naan_entry["quantity"] >= 2
+
+

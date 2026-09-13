@@ -20,34 +20,26 @@
 
 ## Overview
 
-SmartDiner acts as a fully autonomous concierge for restaurants. Unlike traditional LLM wrappers that hallucinate prices or forget fatal allergies, SmartDiner strictly separates natural language understanding from deterministic business logic. It uses a **multi-layered governed AI pipeline**:
+**SmartDiner** is an autonomous AI dining concierge that mathematically guarantees 100% allergen safety, budget compliance, and nutritional balance. Traditional LLM-based chatbots frequently hallucinate menu items, miscalculate prices, or overlook fatal allergens. SmartDiner solves this by strictly decoupling natural language interaction from deterministic business logic through a **four-layer governed pipeline**:
 
-1. **Intent Classification:** Identifies if the user is asking a question, making an order, modifying an order, or being adversarial. Questions are instantly routed to a lightweight Q&A LLM, bypassing heavy math.
-2. **Context-Aware Extraction:** Parses natural language into strict JSON requirements using Gemini 3.5 Flash Lite, maintaining awareness of the user's ongoing draft cart.
-3. **Multi-Venue Resolver:** Supports Restaurant-Agnostic Concierge mode directly from the landing page navbar. Finds, compares, and ranks dishes across multiple restaurants simultaneously.
-4. **SQL Deterministic Filter:** Hard-filters the menu at the database level to ensure 100% allergen safety. Unsafe items never reach the AI.
-5. **ILP Optimization Solver:** Uses Integer Linear Programming (PuLP) with course diversity bonuses, soft structure penalties, and anti-monopoly carb caps to mathematically guarantee budget and party nutrition.
-6. **Grounded Explanation:** The LLM summarizes the mathematically-verified cart back to the user in a natural, hallucination-free response.
-7. **Enriched WORM Audit Logging:** Asynchronously captures compiled SQL queries, cache hits, exact token counts, and solver bounds into immutable GCS Object-Locked blobs.
-8. **Admin AI Business Intelligence:** Dual-source conversational BI engine in the admin dashboard synthesizing data from PostgreSQL analytics and GCS audit trails with strict RBAC.
-9. **Dual-Tier In-Memory Caching:** Synchronized 300s TTL caching layer featuring **L1 Catalog Cache** (eliminating N+1 relational joins during whole-menu browsing) and **L2 Dynamic Filter Cache** (deterministic constraint-hashed memory cache for sub-millisecond AI chat refinements), governed by centralized system constants in `backend/app/constants.py`.
-10. **Server-Sent Events (SSE) Streaming & Generator-First Core:** Real-time event streaming (`POST /api/chat/stream` & `POST /api/admin/insights/chat/stream`) powered by a unified canonical generator core with thin unary adapters (`POST /api/chat`), yielding phase status pills, instant cart population, and token-by-token explanation generation with zero duplicate logic.
-11. **Overhauled Executive Analytics:** Dynamic time-range filtering (`12h`, `today`, `7d`, `30d`, `90d`, `all`, and `custom` date bounds), continuous zero-filled time series with cubic Bézier spline interpolation and interactive crosshairs, dish volume leaderboards with venue attribution, and solver feasibility health telemetry.
-12. **Modular Governed Architecture:** Cleanly decomposed single-responsibility pipeline stages (state management, restaurant resolution, intent handling, ILP meal formulation, and database persistence) ensuring maintainability and 100% compliance.
+1. **Natural Language Understanding:** Gemini 3.5 Flash Lite concurrently classifies intent (`ORDER`, `MODIFICATION`, `QUESTION`, `OFF_TOPIC`, `ADVERSARIAL`) and extracts structured constraints (`party size`, `dietary splits`, `allergens`, `budgets`, and `item/category quantities`), routing informational inquiries to a lightweight read-only Q&A engine.
+2. **Deterministic SQL Filtering:** PostgreSQL and in-memory dual-tier caching (L1 Catalog + L2 Dynamic Filter) hard-filter candidate dishes at the database level via deep ingredient-to-allergen relations. Unsafe items never reach the AI.
+3. **Mathematical ILP Optimization:** PuLP CBC Integer Linear Programming solver formulates a balanced meal plan under hard budget ceilings, headcount requirements, dietary allocations, course diversity bonuses, and anti-monopoly caps.
+4. **Grounded Explanation & Compliance:** The verified cart is explained to the diner using grounded, hallucination-free prompts, while full session telemetry is asynchronously archived to Google Cloud Storage with WORM (Write Once, Read Many) Object-Lock compliance.
 
-This multi-step governed architecture guarantees **100% safety and compliance** while maintaining conversational flexibility, live cart editing, and state persistence.
+### Key Capabilities
+- **Server-Sent Events (SSE) Streaming:** Real-time token streaming with instant cart dispatch (`event: cart`) as soon as the ILP solver finishes, eliminating response lag.
+- **Global Concierge Mode:** Cross-restaurant search and package optimization across multiple culinary establishments directly from the landing page.
+- **Dual-Source Admin AI Analytics:** Interactive executive dashboard with continuous zero-filled time series, cubic Bézier spline interpolation, and an AI intelligence concierge synthesizing PostgreSQL metrics and GCS audit trails.
 
 ---
 
 ## Technical Stack
 
-- **Frontend:** Next.js 14/15, React 18, TailwindCSS, Framer Motion, React Markdown, Server-Sent Events (SSE) (Glassmorphic UI)
-- **Backend:** FastAPI, Python 3.12, SQLAlchemy 2.0 (Async), PuLP (Linear Programming), Server-Sent Events (SSE)
-- **Constants Layer:** `backend/app/constants.py` (Unified TTLs, platform currency, dining taxonomy)
-- **Caching:** Dual-Tier in-memory cache (L1 Catalog + L2 Dynamic Constraint Filter)
-- **Database:** PostgreSQL 16 (Strict constraints, JSONB state, UUIDv7 keys)
-- **AI/LLM:** Google Gemini 3.5 Flash Lite (Structured Outputs & Async Streaming)
-- **Cloud/Infra:** Google Cloud Storage (GCS) for images & WORM compliance logging
+- **Frontend:** Next.js 15 (App Router), React 19, TypeScript, TailwindCSS, Framer Motion, Lucide React, Server-Sent Events (SSE) streaming client.
+- **Backend:** FastAPI, Python 3.12, Pydantic v2, SQLAlchemy 2.0 (Asyncpg), PuLP (CBC Mixed-Integer Linear Programming Solver), Google GenAI SDK (`google-genai`).
+- **Data & Storage:** PostgreSQL 16 (strict constraints, UUIDv7 time-sorted keys, JSONB state persistence), Google Cloud Storage (GCS) with WORM Object-Lock compliance.
+- **Architecture & Performance:** Dual-tier in-memory caching (L1 Catalog Cache + L2 Dynamic Constraint Cache), generator-first streaming core with unary REST adapters, centralized constants (`app.constants`), and centralized prompts module (`app.prompts`).
 
 ---
 
@@ -124,4 +116,6 @@ For deep technical dives into the engineering decisions, database schema, and LL
 - [Database & ERD](https://github.com/ConsoleCzar-2/SmartDiner/wiki/DATABASE)
 - [REST API Reference](https://github.com/ConsoleCzar-2/SmartDiner/wiki/API)
 - [Prompt Engineering & LLM Integration](https://github.com/ConsoleCzar-2/SmartDiner/wiki/PROMPTS)
+- [Testing](https://github.com/ConsoleCzar-2/SmartDiner/wiki/TEST_REPORT)
 - [Engineering Decision Log](https://github.com/ConsoleCzar-2/SmartDiner/wiki/DECISION_LOG)
+

@@ -2,6 +2,9 @@ import json
 import logging
 import time
 import asyncio
+from datetime import datetime, timezone
+from typing import Optional, Dict, Any, List
+from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, and_
 from google import genai
@@ -14,7 +17,7 @@ from app.models.restaurant import Restaurant
 from app.models.menu_item import MenuItem
 from app.models.order import Order, OrderItem
 from app.models.conversation import Conversation
-from app.prompts.admin_insights_prompt import ADMIN_INSIGHTS_SYSTEM_PROMPT, ADMIN_CLASSIFIER_PROMPT
+from app.prompts.admin_insights import ADMIN_INSIGHTS_SYSTEM_PROMPT, ADMIN_CLASSIFIER_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -180,33 +183,73 @@ async def fetch_postgres_metrics(db: AsyncSession, admin_user: AdminUser) -> dic
         })
     metrics["recent_conversations"] = recent_convs
 
+    # 6. Customer Allergen Exclusions from Active & Checked-out Conversations
+    allergen_counts = {}
+    conv_allergens_q = select(Conversation.current_constraints).where(Conversation.current_constraints.is_not(None))
+    if is_scoped:
+        conv_allergens_q = conv_allergens_q.where(Conversation.restaurant_id == rest_filter)
+    conv_all_res = await db.execute(conv_allergens_q)
+    for c_data in conv_all_res.scalars().all():
+        if isinstance(c_data, dict):
+            for a in c_data.get("excluded_allergens", []) or []:
+                if isinstance(a, str) and a.strip():
+                    clean_a = a.strip().capitalize()
+                    allergen_counts[clean_a] = allergen_counts.get(clean_a, 0) + 1
+    metrics["allergen_exclusions_registered"] = allergen_counts
+
     return metrics
 
 
-from concurrent.futures import ThreadPoolExecutor
-
 _GCS_METRICS_CACHE: dict = {}
 _GCS_METRICS_CACHE_TIME: dict = {}
-_GCS_CACHE_TTL: float = 120.0  # 2-minute in-memory cache
+_GCS_CACHE_TTL: float = 60.0  # 60-second in-memory cache
 
 
-def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
+def invalidate_gcs_metrics_cache():
+    """Invalidates the GCS telemetry metrics cache to immediately reflect fresh audit logs."""
+    _GCS_METRICS_CACHE.clear()
+    _GCS_METRICS_CACHE_TIME.clear()
+
+
+def fetch_gcs_audit_metrics(
+    admin_user: AdminUser,
+    start_time: Optional[datetime] = None,
+    end_time: Optional[datetime] = None,
+    limit: int = 50
+) -> dict:
     """
     Reads recent GCS audit logs and computes telemetry aggregates.
-    Uses concurrent blob downloading and 120-second in-memory caching.
+    Orders blobs in descending chronological order so the newest logs are analyzed.
+    Supports optional time filtering and concurrent downloading.
     """
     if not settings.gcs_audit_bucket_name:
         return {
             "status": "UNCONFIGURED",
             "message": "GCS_AUDIT_BUCKET_NAME is not set. In local development without GCS bucket, token logs are simulated.",
-            "total_audit_records": 0,
-            "total_tokens_used": 0,
-            "avg_latency_ms": 0
+            "audit_records_analyzed": 0,
+            "total_tokens_consumed": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "average_tokens_per_chat": 0.0,
+            "average_llm_latency_ms": 0.0,
+            "solver_decisions": {
+                "total_evaluations": 0,
+                "optimal_count": 0,
+                "infeasible_count": 0,
+                "feasibility_rate_pct": 100.0,
+                "avg_solve_time_ms": 0.0
+            },
+            "allergen_exclusions": {
+                "total_allergen_events_recorded": 0,
+                "breakdown_by_allergen": {}
+            }
         }
 
     is_scoped = admin_user.role == "RESTAURANT_ADMIN" and admin_user.restaurant_id
     scoped_rest_id = str(admin_user.restaurant_id) if is_scoped else None
-    cache_key = f"{admin_user.role}_{scoped_rest_id or 'ALL'}"
+    st_key = start_time.isoformat() if start_time else "ALL"
+    et_key = end_time.isoformat() if end_time else "ALL"
+    cache_key = f"{admin_user.role}_{scoped_rest_id or 'ALL'}_{st_key}_{et_key}_{limit}"
 
     # Return cached data if fresh
     now = time.time()
@@ -216,14 +259,51 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
     try:
         client = get_storage_client()
         bucket = client.bucket(settings.gcs_audit_bucket_name)
-        
-        # Read latest 20 blobs
-        blobs = list(bucket.list_blobs(prefix="audit_logs/", max_results=20))
-        if not blobs:
-            res = {"status": "EMPTY", "message": "No audit logs found in bucket.", "records_count": 0}
+
+        all_blobs = list(bucket.list_blobs(prefix="audit_logs/"))
+        if not all_blobs:
+            res = {
+                "status": "EMPTY",
+                "message": "No audit logs found in bucket.",
+                "audit_records_analyzed": 0,
+                "total_tokens_consumed": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "average_tokens_per_chat": 0.0,
+                "average_llm_latency_ms": 0.0,
+                "solver_decisions": {
+                    "total_evaluations": 0,
+                    "optimal_count": 0,
+                    "infeasible_count": 0,
+                    "feasibility_rate_pct": 100.0,
+                    "avg_solve_time_ms": 0.0
+                },
+                "allergen_exclusions": {
+                    "total_allergen_events_recorded": 0,
+                    "breakdown_by_allergen": {}
+                }
+            }
             _GCS_METRICS_CACHE[cache_key] = res
             _GCS_METRICS_CACHE_TIME[cache_key] = now
             return res
+
+        # Sort blobs in reverse chronological order (newest first)
+        sorted_blobs = sorted(
+            all_blobs,
+            key=lambda b: b.time_created or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True
+        )
+
+        # Apply time range filter if specified
+        if start_time:
+            filtered = [
+                b for b in sorted_blobs
+                if (b.time_created and b.time_created >= start_time)
+                and (not end_time or (b.time_created and b.time_created <= end_time))
+            ]
+            blobs_to_read = filtered[:limit] if filtered else sorted_blobs[:limit]
+        else:
+            blobs_to_read = sorted_blobs[:limit]
 
         def _download_blob(b):
             try:
@@ -232,14 +312,15 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
                 logger.debug(f"Error parsing blob {b.name}: {parse_err}")
                 return None
 
-        # Download blobs concurrently using ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=8) as executor:
-            parsed_blobs = list(executor.map(_download_blob, blobs))
+        # Download blobs concurrently (max_workers=10 matches default urllib3 pool size)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            parsed_blobs = list(executor.map(_download_blob, blobs_to_read))
 
         total_prompt_tokens = 0
         total_completion_tokens = 0
         total_tokens = 0
         latencies = []
+        solver_times = []
         solver_optimal = 0
         solver_infeasible = 0
         records_counted = 0
@@ -252,7 +333,7 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
         cache_latencies = []
 
         for content in parsed_blobs:
-            if not content:
+            if not content or not isinstance(content, dict):
                 continue
 
             try:
@@ -261,22 +342,30 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
                     continue
 
                 records_counted += 1
-                telemetry = content.get("pipeline_telemetry", {})
-                
-                # Check allergen exclusions in extracted_constraints or sql filters
-                extracted_c = content.get("extracted_constraints", {})
-                allergens = extracted_c.get("excluded_allergens", [])
-                if allergens and isinstance(allergens, list):
-                    for a in allergens:
-                        allergen_exclusions_detected[a] = allergen_exclusions_detected.get(a, 0) + 1
+                telemetry = content.get("pipeline_telemetry") or {}
+                extracted_c = content.get("extracted_constraints") or {}
+                solver_out = content.get("solver_output") or {}
 
-                for sq in telemetry.get("sql_queries", []):
-                    for sn in sq.get("safety_notes", []):
-                        allergen_exclusions_detected[sn] = allergen_exclusions_detected.get(sn, 0) + 1
+                # Allergen exclusions (clean names only, no sentence strings)
+                log_allergens = set()
+                for a in extracted_c.get("excluded_allergens", []) or []:
+                    if isinstance(a, str) and a.strip():
+                        log_allergens.add(a.strip().capitalize())
+
+                for sq in telemetry.get("sql_queries", []) or []:
+                    for f in sq.get("filters_applied", []) or []:
+                        if isinstance(f, str) and f.startswith("allergen_exclusion:"):
+                            raw = f.replace("allergen_exclusion:", "")
+                            for a in raw.split(","):
+                                if a.strip():
+                                    log_allergens.add(a.strip().capitalize())
+
+                for a in log_allergens:
+                    allergen_exclusions_detected[a] = allergen_exclusions_detected.get(a, 0) + 1
 
                 # Sample recent queries
                 user_msg = content.get("user_message")
-                solver_stat = content.get("solver_output", {}).get("status")
+                solver_stat = solver_out.get("status")
                 if user_msg and len(recent_audit_queries) < 10:
                     recent_audit_queries.append({
                         "user_message": user_msg[:140],
@@ -286,39 +375,66 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
                     })
 
                 # LLM calls telemetry
-                for call in telemetry.get("llm_calls", []):
-                    p_tok = call.get("prompt_tokens", 0)
-                    c_tok = call.get("completion_tokens", 0)
+                for call in telemetry.get("llm_calls", []) or []:
+                    p_tok = call.get("prompt_tokens", 0) or 0
+                    c_tok = call.get("completion_tokens", 0) or 0
                     tot = call.get("total_tokens", 0) or (p_tok + c_tok)
                     total_prompt_tokens += p_tok
                     total_completion_tokens += c_tok
                     total_tokens += tot
                     step_name = call.get("step", "unknown")
                     step_tokens[step_name] = step_tokens.get(step_name, 0) + tot
-                    if "latency_ms" in call:
-                        latencies.append(call["latency_ms"])
+                    if "latency_ms" in call and call["latency_ms"] is not None:
+                        try:
+                            latencies.append(float(call["latency_ms"]))
+                        except (ValueError, TypeError):
+                            pass
 
                 # Cache hits telemetry
-                for ch in telemetry.get("cache_hits", []):
+                for ch in telemetry.get("cache_hits", []) or []:
                     total_cache_lookups += 1
                     if ch.get("status") == "HIT" or ch.get("hit") is True:
                         total_cache_hits += 1
                     else:
                         total_cache_misses += 1
-                    if "duration_ms" in ch:
-                        cache_latencies.append(ch["duration_ms"])
+                    if "duration_ms" in ch and ch["duration_ms"] is not None:
+                        try:
+                            cache_latencies.append(float(ch["duration_ms"]))
+                        except (ValueError, TypeError):
+                            pass
 
-                # Solver status
-                if solver_stat == "Optimal":
-                    solver_optimal += 1
-                elif solver_stat == "Infeasible":
-                    solver_infeasible += 1
+                # Solver status and solve time
+                if solver_stat:
+                    stat_lower = str(solver_stat).lower()
+                    if "optimal" in stat_lower:
+                        solver_optimal += 1
+                    elif "infeasible" in stat_lower:
+                        solver_infeasible += 1
+
+                sd = telemetry.get("solver_decision") or {}
+                st = sd.get("solve_time_ms")
+                if st is None:
+                    dec_rat = solver_out.get("decision_rationale") or {}
+                    st = dec_rat.get("solve_time_ms")
+                if st is not None:
+                    try:
+                        solver_times.append(float(st))
+                    except (ValueError, TypeError):
+                        pass
+
             except Exception as parse_err:
                 logger.debug(f"Error parsing audit content: {parse_err}")
                 continue
 
         avg_lat = round(sum(latencies) / len(latencies), 2) if latencies else 0.0
         avg_cache_lat = round(sum(cache_latencies) / len(cache_latencies), 3) if cache_latencies else 0.0
+        avg_solve = round(sum(solver_times) / len(solver_times), 2) if solver_times else 0.0
+        avg_tokens_per_chat = round(total_tokens / records_counted, 1) if records_counted > 0 else 0.0
+        total_solver_evals = solver_optimal + solver_infeasible
+        feasibility_rate = (
+            round((solver_optimal / total_solver_evals * 100), 1)
+            if total_solver_evals > 0 else 100.0
+        )
 
         res = {
             "status": "SUCCESS",
@@ -326,12 +442,15 @@ def fetch_gcs_audit_metrics(admin_user: AdminUser) -> dict:
             "total_tokens_consumed": total_tokens,
             "prompt_tokens": total_prompt_tokens,
             "completion_tokens": total_completion_tokens,
+            "average_tokens_per_chat": avg_tokens_per_chat,
             "token_breakdown_by_step": step_tokens,
             "average_llm_latency_ms": avg_lat,
             "solver_decisions": {
+                "total_evaluations": total_solver_evals,
                 "optimal_count": solver_optimal,
                 "infeasible_count": solver_infeasible,
-                "feasibility_rate_pct": round((solver_optimal / (solver_optimal + solver_infeasible) * 100), 1) if (solver_optimal + solver_infeasible) > 0 else 100.0
+                "feasibility_rate_pct": feasibility_rate,
+                "avg_solve_time_ms": avg_solve
             },
             "cache_telemetry": {
                 "total_lookups": total_cache_lookups,
@@ -419,7 +538,10 @@ async def generate_admin_insight(
         "metrics_summary": {
             "orders": postgres_data.get("orders_summary") if postgres_data else None,
             "gcs_records": gcs_data.get("audit_records_analyzed") if gcs_data else None,
-            "total_tokens": gcs_data.get("total_tokens_consumed") if gcs_data else None
+            "total_tokens": gcs_data.get("total_tokens_consumed") if gcs_data else None,
+            "average_tokens_per_chat": gcs_data.get("average_tokens_per_chat") if gcs_data else None,
+            "solver_feasibility": gcs_data.get("solver_decisions", {}).get("feasibility_rate_pct") if gcs_data else None,
+            "allergen_exclusions": gcs_data.get("allergen_exclusions", {}).get("breakdown_by_allergen") if gcs_data else (postgres_data.get("allergen_exclusions_registered") if postgres_data else None)
         }
     }
 
@@ -469,7 +591,10 @@ async def stream_admin_insight(
     metrics_summary = {
         "orders": postgres_data.get("orders_summary") if postgres_data else None,
         "gcs_records": gcs_data.get("audit_records_analyzed") if gcs_data else None,
-        "total_tokens": gcs_data.get("total_tokens_consumed") if gcs_data else None
+        "total_tokens": gcs_data.get("total_tokens_consumed") if gcs_data else None,
+        "average_tokens_per_chat": gcs_data.get("average_tokens_per_chat") if gcs_data else None,
+        "solver_feasibility": gcs_data.get("solver_decisions", {}).get("feasibility_rate_pct") if gcs_data else None,
+        "allergen_exclusions": gcs_data.get("allergen_exclusions", {}).get("breakdown_by_allergen") if gcs_data else (postgres_data.get("allergen_exclusions_registered") if postgres_data else None)
     }
 
     yield sse_admin_pack("metadata", {

@@ -171,7 +171,7 @@ Maintains the state of an ongoing chat session, acting as the memory bank for th
 - `user_id` (UUID, FK -> `users.id`, Nullable)
 - `restaurant_id` (UUID, FK -> `restaurants.id`, Nullable)
 - `messages` (JSONB, default: `[]`) — Raw chat history for context.
-- `current_constraints` (JSONB, default: `{}`) — Accumulated rules (e.g., budget, people count).
+- `current_constraints` (JSONB, default: `{}`) — Accumulated dining constraints: `people_count`, `vegetarian_count`, `vegan_count`, `non_vegetarian_count`, `max_budget`, `max_spice_level`, `excluded_allergens`, `preferred_cuisines`, `preferred_categories`, `category_min_counts`, `specific_dish_requests`, `dish_quantities`, `excluded_dishes`, `is_modification`.
 - `current_cart` (JSONB, default: `[]`) — Server-side cart persistence (array of `{item_id, quantity, unit_price}`).
 - `created_at`, `updated_at` (TIMESTAMPTZ)
 

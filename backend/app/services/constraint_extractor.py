@@ -2,7 +2,7 @@ import json
 import time
 from google import genai
 from app.schemas.constraints import ExtractedConstraints
-from app.prompts.constraint_extraction import SYSTEM_PROMPT
+from app.prompts.constraint_extraction import CONSTRAINT_EXTRACTION_SYSTEM_PROMPT
 from app.config import settings
 
 async def extract_constraints(user_message: str, conversation_history: list = None, 
@@ -36,10 +36,15 @@ async def extract_constraints(user_message: str, conversation_history: list = No
     schema = ExtractedConstraints.model_json_schema()
     if "properties" in schema:
         schema["required"] = list(schema["properties"].keys())
-        for prop in schema["properties"].values():
+        for prop_name, prop in schema["properties"].items():
             prop.pop("default", None)
             prop.pop("title", None)
-            if "anyOf" in prop:
+            if prop_name in ("category_min_counts", "dish_quantities"):
+                prop.clear()
+                prop["type"] = "array"
+                prop["items"] = {"type": "string"}
+                prop["description"] = f"List of {prop_name} formatted as 'Name:count', e.g. ['Bread:2', 'Beverage:2']"
+            elif "anyOf" in prop:
                 types = [t.get("type") for t in prop["anyOf"] if t.get("type") and t.get("type") != "null"]
                 if types:
                     prop["type"] = types[0]
@@ -51,7 +56,7 @@ async def extract_constraints(user_message: str, conversation_history: list = No
         model="gemini-3.5-flash-lite",
         contents=final_prompt,
         config={
-            "system_instruction": SYSTEM_PROMPT,
+            "system_instruction": CONSTRAINT_EXTRACTION_SYSTEM_PROMPT,
             "response_mime_type": "application/json",
             "response_schema": schema,
             "temperature": 0.1,

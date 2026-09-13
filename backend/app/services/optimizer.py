@@ -55,9 +55,12 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem],
         }
 
     total_people = constraints.people_count or 1
-    # Adjust max_qty_per_dish dynamically based on available menu diversity
+    # Adjust max_qty_per_dish dynamically based on available menu diversity and requested quantities
     div = min(max(1, len(all_items)), 3.0)
-    max_qty_per_dish = max(2, math.ceil(total_people / div))
+    base_max = max(2, math.ceil(total_people / div))
+    req_dish_max = max(constraints.dish_quantities.values()) if getattr(constraints, "dish_quantities", None) else 1
+    req_cat_max = max(constraints.category_min_counts.values()) if getattr(constraints, "category_min_counts", None) else 1
+    max_qty_per_dish = max(base_max, req_dish_max, req_cat_max)
 
     veg_people = constraints.vegetarian_count or 0
     vegan_people = constraints.vegan_count or 0
@@ -177,44 +180,62 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem],
     if veg_people > 0 and vegan_people > 0:
         prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in veg_items]) <= veg_people * 4, "MaxPureVegServings"
 
-    # D. Maximum Total Servings (Feast Limit)
-    prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in all_items]) <= total_people * 4, "MaxServingsConstraint"
+    # D. Maximum Total Servings (Feast Limit, dynamically expanded for explicit multi-item requests)
+    min_req_count = sum(constraints.category_min_counts.values()) if getattr(constraints, "category_min_counts", None) else 0
+    min_dish_count = sum(constraints.dish_quantities.values()) if getattr(constraints, "dish_quantities", None) else 0
+    feast_cap = max(total_people * 4, (min_req_count + min_dish_count) * 2, 12)
+    prob += pulp.lpSum([item_vars[item.id] * item.serving_size for item in all_items]) <= feast_cap, "MaxServingsConstraint"
     
     # E. Category Diversity
     prob += pulp.lpSum([c_var for c_var in category_vars.values()]) >= min_categories, "MinCategoryDiversity"
 
     # Anti-monopoly caps for Bread and Rice to prevent carbohydrate-only carts
+    cat_counts = getattr(constraints, "category_min_counts", {}) or {}
     bread_items = [i for i in all_items if i.category == "Bread"]
     if bread_items:
-        max_bread = max(2, math.ceil(total_people / 2.0))
+        req_bread = cat_counts.get("Bread", 0)
+        max_bread = max(req_bread, max(2, math.ceil(total_people / 2.0)))
         prob += pulp.lpSum([item_vars[i.id] for i in bread_items]) <= max_bread, "MaxBreadCap"
 
     rice_items = [i for i in all_items if i.category == "Rice"]
     if rice_items:
-        max_rice = max(1, math.ceil(total_people / 2.0))
+        req_rice = cat_counts.get("Rice", 0)
+        max_rice = max(req_rice, max(1, math.ceil(total_people / 2.0)))
         prob += pulp.lpSum([item_vars[i.id] for i in rice_items]) <= max_rice, "MaxRiceCap"
 
     # Anti-monopoly caps for Beverage, Side, and Dessert to prevent peripheral items from dominating meals
     pref_cats = set(constraints.preferred_categories or [])
 
     beverage_items = [i for i in all_items if i.category == "Beverage"]
-    if beverage_items and "Beverage" not in pref_cats:
+    if beverage_items and "Beverage" not in pref_cats and "Beverage" not in cat_counts:
         max_bev = max(1, total_people)
         prob += pulp.lpSum([item_vars[i.id] for i in beverage_items]) <= max_bev, "MaxBeverageCap"
 
     side_items = [i for i in all_items if i.category == "Side"]
-    if side_items and "Side" not in pref_cats:
+    if side_items and "Side" not in pref_cats and "Side" not in cat_counts:
         max_side = max(1, math.ceil(total_people / 2.0))
         prob += pulp.lpSum([item_vars[i.id] for i in side_items]) <= max_side, "MaxSideCap"
 
     dessert_items = [i for i in all_items if i.category == "Dessert"]
-    if dessert_items and "Dessert" not in pref_cats:
+    if dessert_items and "Dessert" not in pref_cats and "Dessert" not in cat_counts:
         max_dessert = max(1, math.ceil(total_people / 2.0))
         prob += pulp.lpSum([item_vars[i.id] for i in dessert_items]) <= max_dessert, "MaxDessertCap"
 
-    # F. Specific Dish Requests (Substring & Plural-Tolerant Matching)
+    # F. Specific Dish Requests & Quantities (Substring & Plural-Tolerant Matching)
+    req_dish_quantities = getattr(constraints, "dish_quantities", {}) or {}
+    handled_dish_names = set()
+
+    for req_dish, req_qty in req_dish_quantities.items():
+        matched_items = [item for item in all_items if dish_matches(req_dish, item.name)]
+        if matched_items:
+            dish_label = req_dish.lower().replace(' ', '_')[:20]
+            prob += pulp.lpSum([item_vars[i.id] for i in matched_items]) >= req_qty, f"ReqDishQty_{dish_label}"
+            handled_dish_names.add(req_dish.lower())
+
     if constraints.specific_dish_requests:
         for req_dish in constraints.specific_dish_requests:
+            if req_dish.lower() in handled_dish_names:
+                continue
             matched_items = [item for item in all_items if dish_matches(req_dish, item.name)]
             if matched_items:
                 dish_label = req_dish.lower().replace(' ', '_')[:20]
@@ -227,9 +248,14 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem],
             for matched in matched_items:
                 prob += item_vars[matched.id] == 0, f"ExcludeDish_{str(matched.id).replace('-', '_')}"
 
-    # H. Preferred Categories (strictly enforce at least 1 dish from requested categories)
-    if constraints.preferred_categories:
-        for p_cat in constraints.preferred_categories:
+    # H. Preferred Categories & Minimum Category Counts
+    all_target_categories = set(constraints.preferred_categories or [])
+    for cat in cat_counts:
+        all_target_categories.add(cat)
+
+    if all_target_categories:
+        for p_cat in all_target_categories:
+            target_min = cat_counts.get(p_cat, 1)
             cat_dishes = [item for item in all_items if item.category == p_cat]
             if veg_people == 0 and nonveg_people == 0 and vegan_people > 0:
                 cat_dishes = [item for item in cat_dishes if item.dietary_preference == "Vegan"]
@@ -238,7 +264,7 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem],
 
             if cat_dishes:
                 safe_cat = p_cat.replace(" ", "_").replace("-", "_")
-                prob += pulp.lpSum([item_vars[i.id] for i in cat_dishes]) >= 1, f"ReqPrefCat_{safe_cat}"
+                prob += pulp.lpSum([item_vars[i.id] for i in cat_dishes]) >= target_min, f"ReqPrefCat_{safe_cat}"
             elif p_cat in category_vars:
                 prob += category_vars[p_cat] >= 1, f"PrefCategory_{p_cat.replace(' ', '_')}"
 
@@ -259,7 +285,7 @@ def optimize_menu(veg_items: list[MenuItem], vegan_items: list[MenuItem],
         "categories_activated": [],
         "budget_limit": float(constraints.max_budget) if constraints.max_budget else "None",
         "min_total_servings": total_people,
-        "max_servings_cap": total_people * 4,
+        "max_servings_cap": feast_cap,
         "min_categories": min_categories,
         "veg_people": constraints.vegetarian_count or 0,
         "vegan_people": constraints.vegan_count or 0,

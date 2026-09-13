@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Optional, List
 import asyncio
+import logging
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -22,6 +23,7 @@ from app.services.auth import verify_password, create_access_token, get_current_
 from app.services.admin_insights import fetch_gcs_audit_metrics
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+logger = logging.getLogger(__name__)
 
 
 def get_time_bounds(
@@ -315,11 +317,11 @@ async def get_analytics(
         )
     category_distribution.sort(key=lambda x: x.revenue, reverse=True)
 
-    # 4. Solver Health & Allergen Frequency from GCS telemetry
+    # 4. Solver Health & Allergen Frequency from GCS telemetry and DB fallback
     try:
         gcs_metrics = await asyncio.wait_for(
-            asyncio.to_thread(fetch_gcs_audit_metrics, current_user),
-            timeout=5.0
+            asyncio.to_thread(fetch_gcs_audit_metrics, current_user, start_time, end_time, 50),
+            timeout=15.0
         )
     except Exception as gcs_err:
         logger.warning(f"GCS audit telemetry fetch timed out or failed: {gcs_err}")
@@ -328,12 +330,50 @@ async def get_analytics(
     solver_data = gcs_metrics.get("solver_decisions", {})
     solver_health = SolverHealthMetrics(
         feasibility_rate_pct=solver_data.get("feasibility_rate_pct", 100.0),
-        total_evaluations=solver_data.get("optimal_count", 0) + solver_data.get("infeasible_count", 0),
+        total_evaluations=solver_data.get("total_evaluations", solver_data.get("optimal_count", 0) + solver_data.get("infeasible_count", 0)),
         optimal_count=solver_data.get("optimal_count", 0),
         infeasible_count=solver_data.get("infeasible_count", 0),
-        avg_solve_time_ms=gcs_metrics.get("average_llm_latency_ms", 0.0)
+        avg_solve_time_ms=solver_data.get("avg_solve_time_ms", 0.0)
     )
-    allergen_freq = gcs_metrics.get("allergen_exclusions", {}).get("breakdown_by_allergen", {})
+    allergen_freq = dict(gcs_metrics.get("allergen_exclusions", {}).get("breakdown_by_allergen", {}))
+
+    # Fallback / augment with PostgreSQL if GCS was empty or missing allergen records
+    if not allergen_freq:
+        # Check orders.constraints_used within time range
+        ord_allergens_q = (
+            select(Order.constraints_used)
+            .where(*order_filter)
+            .where(Order.constraints_used.is_not(None))
+        )
+        ord_all_res = await db.execute(ord_allergens_q)
+        for row in ord_all_res.scalars().all():
+            if isinstance(row, dict):
+                for a in row.get("excluded_allergens", []) or []:
+                    if isinstance(a, str) and a.strip():
+                        clean_a = a.strip().capitalize()
+                        allergen_freq[clean_a] = allergen_freq.get(clean_a, 0) + 1
+
+    if not allergen_freq:
+        # Check active and completed conversations
+        conv_filter = []
+        if current_user.role == "RESTAURANT_ADMIN" and current_user.restaurant_id:
+            conv_filter.append(Conversation.restaurant_id == current_user.restaurant_id)
+        if start_time:
+            conv_filter.append(Conversation.updated_at >= start_time)
+        if end_time and time_range == "custom":
+            conv_filter.append(Conversation.updated_at <= end_time)
+        conv_allergens_q = (
+            select(Conversation.current_constraints)
+            .where(*conv_filter)
+            .where(Conversation.current_constraints.is_not(None))
+        )
+        conv_all_res = await db.execute(conv_allergens_q)
+        for row in conv_all_res.scalars().all():
+            if isinstance(row, dict):
+                for a in row.get("excluded_allergens", []) or []:
+                    if isinstance(a, str) and a.strip():
+                        clean_a = a.strip().capitalize()
+                        allergen_freq[clean_a] = allergen_freq.get(clean_a, 0) + 1
 
     # 5. Recent Orders
     recent_ord_q = (

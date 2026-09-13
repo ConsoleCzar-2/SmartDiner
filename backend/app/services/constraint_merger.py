@@ -5,6 +5,7 @@ def merge_constraints(existing: dict, delta: ExtractedConstraints) -> ExtractedC
     Merges the newly extracted constraint delta into the existing constraint state.
     - Numeric/String fields: overwritten if delta provides a non-default/non-null value.
     - List fields: replaced entirely if delta provides them (the LLM is instructed to output the full list if it changes).
+    - Dictionary fields (category_min_counts, dish_quantities): merged and updated.
     - non_vegetarian_count is auto-computed as (people_count - vegetarian_count - vegan_count).
     """
     # Start with a copy of existing state
@@ -33,13 +34,48 @@ def merge_constraints(existing: dict, delta: ExtractedConstraints) -> ExtractedC
             # so we just overwrite the existing list with the LLM's list.
             merged[list_field] = delta_dict[list_field]
 
+    # 3. Merge dictionary quantity fields
+    for dict_field in ["category_min_counts", "dish_quantities"]:
+        if dict_field in delta_dict and delta_dict[dict_field]:
+            curr_dict = dict(merged.get(dict_field, {}) or {})
+            for k, v in delta_dict[dict_field].items():
+                if v is not None and v > 0:
+                    curr_dict[k] = v
+                elif v == 0 and k in curr_dict:
+                    del curr_dict[k]
+            merged[dict_field] = curr_dict
+
+    # Cross-field consistency: category_min_counts reflected in preferred_categories
+    if merged.get("category_min_counts"):
+        pref_cats = set(merged.get("preferred_categories", []) or [])
+        for cat, cnt in merged["category_min_counts"].items():
+            if cnt > 0:
+                pref_cats.add(cat)
+        merged["preferred_categories"] = list(pref_cats)
+
+    # Cross-field consistency: dish_quantities reflected in specific_dish_requests
+    if merged.get("dish_quantities"):
+        spec_dishes = list(merged.get("specific_dish_requests", []) or [])
+        for dish, cnt in merged["dish_quantities"].items():
+            if cnt > 0 and not any(dish.lower() == sd.lower() for sd in spec_dishes):
+                spec_dishes.append(dish)
+        merged["specific_dish_requests"] = spec_dishes
+
+    # Excluded dishes clean-up from dish_quantities and specific_dish_requests
+    if merged.get("excluded_dishes"):
+        excl_lower = set(d.lower() for d in merged["excluded_dishes"])
+        if "dish_quantities" in merged and merged["dish_quantities"]:
+            merged["dish_quantities"] = {k: v for k, v in merged["dish_quantities"].items() if k.lower() not in excl_lower}
+        if "specific_dish_requests" in merged and merged["specific_dish_requests"]:
+            merged["specific_dish_requests"] = [d for d in merged["specific_dish_requests"] if d.lower() not in excl_lower]
+
     # Ensure people_count defaults to at least 1
     people = merged.get("people_count", 1)
     if people < 1:
         people = 1
     merged["people_count"] = people
     
-    # 3. Invariant validation & Math
+    # 4. Invariant validation & Math
     veg = merged.get("vegetarian_count", 0)
     vegan = merged.get("vegan_count", 0)
     
@@ -53,3 +89,4 @@ def merge_constraints(existing: dict, delta: ExtractedConstraints) -> ExtractedC
     
     # Parse back to Pydantic
     return ExtractedConstraints(**merged)
+

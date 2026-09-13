@@ -5,25 +5,11 @@ import time
 from google import genai
 from app.config import settings
 from app.services.constraint_extractor import extract_constraints
+from app.prompts.llm_judge import JUDGE_SYSTEM_PROMPT
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "golden_test_cases.json")
 REPORT_PATH = os.path.join(os.path.dirname(__file__), "TEST_REPORT_JUDGE.md")
 
-JUDGE_SYSTEM_PROMPT = """You are an expert AI Benchmark Judge evaluating the accuracy of an LLM-based constraint extraction system for food ordering.
-
-Your job is to rate the extracted output against the expected ground truth and user message on a 1-10 scale:
-- 9-10 (Exceptional): Perfect capture of all numbers, budget, allergens, dietary preferences, and nuances.
-- 7-8 (Good/Acceptable): Minor semantic differences that do not harm meal planning (e.g. slightly different wording for dish request).
-- 5-6 (Mediocre): Missed minor constraint or imprecise budget, but party size and diet captured.
-- 1-4 (Critical Failure): Missed an allergen, wrong party size, or inverted dietary preference (e.g. non-veg served to vegan).
-
-Return valid JSON with:
-{
-  "score": float (1.0 to 10.0),
-  "is_safe": bool (True if no allergens or dietary violations were missed),
-  "reasoning": "Brief analysis of strengths and flaws"
-}
-"""
 
 async def judge_case_with_retry(client, input_msg, expected, extracted, max_retries: int = 3):
     prompt = (

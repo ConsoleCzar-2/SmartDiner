@@ -3,7 +3,7 @@
 import json
 import time
 from google import genai
-from app.prompts.explanation import EXPLANATION_SYSTEM_PROMPT
+from app.prompts.explanation import EXPLANATION_SYSTEM_PROMPT, QUESTION_ANSWER_SYSTEM_PROMPT
 from app.schemas.constraints import ExtractedConstraints
 from app.config import settings
 
@@ -176,12 +176,7 @@ async def stream_question_answer(
         model="gemini-3.5-flash-lite",
         contents=prompt,
         config={
-            "system_instruction": (
-                "You are a helpful assistant for a food ordering app. "
-                "The user is asking a question about their current order or menu. "
-                "Answer briefly (2-4 sentences) based on the provided CURRENT_CART and CURRENT_CONSTRAINTS. "
-                "Do not offer to modify the order unless they ask."
-            ),
+            "system_instruction": QUESTION_ANSWER_SYSTEM_PROMPT,
             "temperature": 0.3,
         }
     )

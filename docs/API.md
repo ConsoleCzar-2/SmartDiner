@@ -140,7 +140,9 @@ Retrieves the most recent active conversation for the user at a given restaurant
   ],
   "current_constraints": {
     "people_count": 4,
-    "max_budget": null
+    "max_budget": 2500.0,
+    "category_min_counts": { "Bread": 2, "Beverage": 2 },
+    "dish_quantities": { "Garlic Naan": 2 }
   }
 }
 ```
