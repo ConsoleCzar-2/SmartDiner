@@ -77,7 +77,7 @@ export default function RestaurantMenuPage({
                 setConversationId(data.conversation_id);
                 setCartItems(data.cart);
                 toast.success("Added to cart");
-            } catch(e: any) {
+            } catch {
                 toast.error("Please sign in to add items to your cart");
             }
             return;
@@ -101,7 +101,7 @@ export default function RestaurantMenuPage({
         try {
             const data = await patchCart(conversationId, [{ id: itemId, quantity: newQuantity }]);
             setCartItems(data.cart);
-        } catch(e: any) {
+        } catch {
             toast.error("Failed to update cart");
             fetchActiveCart(id).then(d => {
                 if(d) setCartItems(d.cart || []);

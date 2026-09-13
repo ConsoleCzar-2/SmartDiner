@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { DailyTrendPoint } from "@/types";
-import { TrendingUp, IndianRupee, ShoppingBag, Calendar, ArrowUpRight } from "lucide-react";
+import { TrendingUp, IndianRupee, ShoppingBag, Calendar } from "lucide-react";
 
 interface AnalyticsChartProps {
     data: DailyTrendPoint[];

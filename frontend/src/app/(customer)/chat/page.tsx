@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Plus, ShieldCheck, Sparkles, Store, CheckCircle } from "lucide-react";
+import { ArrowLeft, Plus, Sparkles, Store, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -9,7 +9,6 @@ import { CartPanel } from "@/components/cart-panel";
 import { ChatPanel } from "@/components/chat-panel";
 import { streamChatMessage, fetchRestaurants, abandonActiveChat } from "@/lib/api";
 import type {
-    ChatResponse,
     ConversationMessage,
     RecommendationResult,
     CrossRestaurantMeta,

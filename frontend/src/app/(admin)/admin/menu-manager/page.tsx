@@ -3,20 +3,18 @@
 import { useEffect, useState } from "react";
 import { fetchRestaurants, fetchRestaurantMenu, adminCreateMenuItem, adminUpdateMenuItem, adminDeleteMenuItem, adminFetchAllergens } from "@/lib/api";
 import { Plus, Edit, Trash2, Save, X, Image as ImageIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 export default function MenuManagerPage() {
     const [restaurants, setRestaurants] = useState<any[]>([]);
     const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
     const [menuItems, setMenuItems] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [editingItem, setEditingItem] = useState<any | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [isCustomCategory, setIsCustomCategory] = useState(false);
     const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
     const [masterAllergens, setMasterAllergens] = useState<any[]>([]);
     const [selectedAllergens, setSelectedAllergens] = useState<number[]>([]);
-    const router = useRouter();
 
     const uniqueCategories = Array.from(new Set(menuItems.map(i => i.category).filter(Boolean)));
 

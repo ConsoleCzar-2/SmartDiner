@@ -9,10 +9,9 @@ import {
     ArrowDownRight, 
     Clock, 
     RefreshCw, 
-    ShoppingBag,
-    TrendingUp
+    ShoppingBag
 } from "lucide-react";
-import { fetchAdminMetrics, fetchAdminAnalytics } from "@/lib/api";
+import { fetchAdminAnalytics } from "@/lib/api";
 import { TimeRange, AdminAnalyticsResponse } from "@/types";
 import { TimeRangePicker } from "@/components/admin/time-range-picker";
 import { AnalyticsChart } from "@/components/admin/analytics-chart";
@@ -25,7 +24,6 @@ export default function AdminPage() {
     const [endDate, setEndDate] = useState<string>("");
     const [analytics, setAnalytics] = useState<AdminAnalyticsResponse | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
     const loadData = useCallback(async (range: TimeRange, customStart?: string, customEnd?: string) => {
         const token = localStorage.getItem("adminToken");
@@ -37,7 +35,6 @@ export default function AdminPage() {
         try {
             const data = await fetchAdminAnalytics(token, range, customStart, customEnd);
             setAnalytics(data);
-            setLastRefreshed(new Date());
         } catch (err) {
             console.error("Failed to load admin analytics:", err);
         } finally {

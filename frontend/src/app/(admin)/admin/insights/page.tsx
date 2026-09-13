@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, Bot, User, Database, ShieldCheck, Loader2, ArrowRight } from "lucide-react";
+import { Sparkles, Send, Bot, User, Database, Loader2, ArrowRight } from "lucide-react";
 import { streamAdminInsightChat } from "@/lib/api";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 

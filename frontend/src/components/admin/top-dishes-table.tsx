@@ -2,7 +2,7 @@
 
 import React from "react";
 import { TopDishItem } from "@/types";
-import { Utensils, Award } from "lucide-react";
+import { Award } from "lucide-react";
 
 interface TopDishesTableProps {
     items: TopDishItem[];
@@ -44,9 +44,7 @@ export function TopDishesTable({ items, currencySymbol = "₹" }: TopDishesTable
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {items.map((dish, idx) => {
-                            const isTop3 = idx < 3;
-                            return (
+                        {items.map((dish, idx) => (
                                 <tr
                                     key={`${dish.name}-${idx}`}
                                     className="group hover:bg-white/[.02] transition-colors"
@@ -88,8 +86,7 @@ export function TopDishesTable({ items, currencySymbol = "₹" }: TopDishesTable
                                         {currencySymbol}{dish.revenue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                                     </td>
                                 </tr>
-                            );
-                        })}
+                            ))}
                     </tbody>
                 </table>
             </div>

@@ -10,10 +10,6 @@ export default function OrdersPage() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadOrders();
-    }, []);
-
     const loadOrders = async () => {
         try {
             const data = await fetchOrderHistory();
@@ -24,6 +20,10 @@ export default function OrdersPage() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadOrders();
+    }, []);
 
     return (
         <main className="min-h-screen bg-[#0c1011] text-white">
@@ -38,7 +38,7 @@ export default function OrdersPage() {
                     <div className="text-zinc-500">Loading orders...</div>
                 ) : orders.length === 0 ? (
                     <div className="text-zinc-500 bg-white/5 rounded-2xl p-8 text-center">
-                        You haven't placed any orders yet.
+                        You haven&apos;t placed any orders yet.
                     </div>
                 ) : (
                     <div className="space-y-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { fetchActiveCart, patchCart, checkoutOrder } from "@/lib/api";
 import { X, Plus, Minus, ShoppingCart } from "lucide-react";
@@ -25,7 +25,7 @@ export function CartDrawer({
         setMounted(true);
     }, []);
 
-    const loadCart = async () => {
+    const loadCart = useCallback(async () => {
         if (!restaurantId || !isOpen) return;
         setLoading(true);
         try {
@@ -37,11 +37,11 @@ export function CartDrawer({
         } finally {
             setLoading(false);
         }
-    };
+    }, [restaurantId, isOpen]);
 
     useEffect(() => {
         loadCart();
-    }, [isOpen, restaurantId]);
+    }, [loadCart]);
 
     const updateQuantity = async (id: string, newQuantity: number) => {
         if (!conversationId) return;

@@ -119,7 +119,7 @@ export default function WormLogViewer({ log, viewMode }: { log: any; viewMode: '
                         <MessageSquare className="h-3.5 w-3.5 text-[#f6a61d]" /> User Input Prompt
                     </h3>
                     <p className="text-sm font-medium text-zinc-200 bg-white/5 rounded-lg p-3.5 border border-white/5">
-                        "{log.user_message || 'N/A'}"
+                        &ldquo;{log.user_message || 'N/A'}&rdquo;
                     </p>
                 </div>
 
@@ -139,7 +139,7 @@ export default function WormLogViewer({ log, viewMode }: { log: any; viewMode: '
                             </div>
                             {intent.reason && (
                                 <p className="text-[11px] text-zinc-400 mt-1 italic">
-                                    "{intent.reason}"
+                                    &ldquo;{intent.reason}&rdquo;
                                 </p>
                             )}
                         </div>
@@ -683,7 +683,7 @@ export default function WormLogViewer({ log, viewMode }: { log: any; viewMode: '
                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span> LLM Explanation
                 </h3>
                 <p className="text-sm text-zinc-300 italic bg-white/5 rounded-lg p-3.5 border border-white/5">
-                    "{log.llm_explanation}"
+                    &ldquo;{log.llm_explanation}&rdquo;
                 </p>
             </div>
         </div>

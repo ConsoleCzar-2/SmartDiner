@@ -13,7 +13,6 @@ export function SolverHealthCard({ health, allergenFrequency = {} }: SolverHealt
     const feasibilityRate = health?.feasibility_rate_pct ?? 100;
     const optimalCount = health?.optimal_count ?? 0;
     const infeasibleCount = health?.infeasible_count ?? 0;
-    const totalSolves = health?.total_solves ?? 0;
     const avgSolveTime = health?.avg_solve_time_ms ?? 0;
 
     const allergenEntries = Object.entries(allergenFrequency).sort((a, b) => b[1] - a[1]);

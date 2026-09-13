@@ -5,7 +5,6 @@ import {
     Leaf,
     ReceiptText,
     Users,
-    Beef,
     Drumstick,
     Sprout,
     Flame,
@@ -49,6 +48,7 @@ const SpiceIndicator = ({ level }: { level: string }) => {
     );
 };
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { patchCart } from "@/lib/api";
 import { toast } from "sonner";
 import { Plus, Minus } from "lucide-react";
@@ -62,6 +62,7 @@ export function CartPanel({
     constraints?: any | null;
     conversationId?: string | null;
 }) {
+    const router = useRouter();
     const [localRec, setLocalRec] = useState<RecommendationResult | null>(null);
 
     useEffect(() => {
@@ -93,7 +94,6 @@ export function CartPanel({
             if (!current) return current;
             const updatedItems = current.items.map(item => {
                 if (item.id === itemId) {
-                    const diff = newQuantity - item.quantity;
                     return { 
                         ...item, 
                         quantity: newQuantity,
@@ -117,7 +117,7 @@ export function CartPanel({
             await patchCart(conversationId, [{ id: itemId, quantity: newQuantity }]);
             toast.success("Cart updated");
             window.dispatchEvent(new Event('cartUpdated'));
-        } catch(e: any) {
+        } catch {
             toast.error("Failed to update cart");
             // Revert state on failure by relying on the next recommendation or fetching it (simplified here)
         }
@@ -283,7 +283,7 @@ export function CartPanel({
                                 try {
                                     const { checkoutOrder } = await import('@/lib/api');
                                     await checkoutOrder(conversationId);
-                                    window.location.href = '/orders';
+                                    router.push('/orders');
                                 } catch(e: any) {
                                     toast.error(e.message);
                                 }
