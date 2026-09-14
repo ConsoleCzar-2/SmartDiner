@@ -4,7 +4,7 @@
 
 This report documents the multi-layered testing, verification, and benchmarking strategy implemented across the SmartDiner platform. It encompasses deterministic unit and regression testing, mathematical solver verification, LLM extraction accuracy benchmarking, LLM-as-a-judge qualitative scoring, and frontend static analysis.
 
-- **Backend Regression Suite:** 55 / 55 tests passed (100% success rate across 11 test modules).
+- **Backend Regression Suite:** 61 / 61 tests passed (100% success rate across 12 test modules).
 - **Mathematical Solver Reliability:** 18 / 18 deterministic optimizer tests passed with 0% budget or allergen violations.
 - **LLM Constraint Extraction Accuracy:** 15 / 15 golden benchmark cases passed (100.0% extraction accuracy vs. 85.0% required threshold).
 - **LLM-as-Judge Qualitative Score:** 9.0 / 10.0 average extraction quality score evaluated by Gemini 3.5 Flash Lite.
@@ -21,6 +21,7 @@ The following table summarizes all test suites, their target scope, tools used, 
 | Test Suite | Scope & Purpose | Tool / Runner | Command |
 |---|---|---|---|
 | **Full Backend Regression** | Complete end-to-end regression across all backend routers, models, services, and streaming generators | `pytest` | `cd backend && python -m pytest` |
+| **Token Optimization Tests** | Sequential intent gating, lean cart projections, compact constraints, and question bypass | `pytest` | `cd backend && python -m pytest tests/test_token_optimization.py` |
 | **ILP Optimizer Tests** | Mathematical solver bounds, course structures, anti-monopoly caps, and category/dish quantities | `pytest` | `cd backend && python -m pytest tests/test_optimizer.py` |
 | **Constraint Merger Tests** | Delta merging, cross-field category/dish synchronization, and exclusion pruning | `pytest` | `cd backend && python -m pytest tests/test_constraint_merger.py` |
 | **Streaming & Generator Tests** | SSE event formatting, token streaming, cart dispatch, and unary adapter draining | `pytest` | `cd backend && python -m pytest tests/test_streaming.py` |
@@ -41,9 +42,9 @@ For in-depth per-case logs and evaluation telemetry, consult the dedicated bench
 
 ---
 
-## 4. Full Backend Regression Suite (55 Tests)
+## 4. Full Backend Regression Suite (61 Tests)
 
-The entire backend test suite was executed to ensure zero regressions across pipeline components, Server-Sent Events (SSE) streaming generators, cache mechanics, restaurant switching, admin operational analytics, and business intelligence reporting.
+The entire backend test suite was executed to ensure zero regressions across pipeline components, Server-Sent Events (SSE) streaming generators, cache mechanics, restaurant switching, admin operational analytics, business intelligence reporting, and token optimization layers.
 
 ```bash
 cd backend
@@ -63,8 +64,24 @@ python -m pytest
 | `tests/test_pipeline_e2e.py` | End-to-end multi-stage pipeline execution, modular helper execution, and WORM payload generation | 5 | 5 / 5 PASSED |
 | `tests/test_restaurant_switching.py` | Cross-venue resolution, ambiguity detection, and venue state transitions | 1 | 1 / 1 PASSED |
 | `tests/test_streaming.py` | Server-Sent Events (SSE) streaming generators (`stream_explanation`, `stream_chat_pipeline`, `stream_admin_insight`) | 3 | 3 / 3 PASSED |
+| `tests/test_token_optimization.py` | Lean cart projections, compact constraint pruning, condensed history, and sequential intent gating bypasses | 6 | 6 / 6 PASSED |
 
-**Total Backend Suite Result:** 55 / 55 PASSED (100%)
+**Total Backend Suite Result:** 61 / 61 PASSED (100%)
+
+### 4.1. System Prompt Token Streamlining Benchmarks
+
+All 7 system prompts under `backend/app/prompts/` were refactored and measured against Google's Gemini token counter API:
+
+| System Prompt Module | Target Function | Legacy Token Count | Streamlined Token Count | Absolute Reduction | Relative Drop |
+|---|---|---|---|---|---|
+| `intent_classification.py` | Front-line Intent Classifier | 901 tokens | **482 tokens** | -419 tokens | **-46.5%** |
+| `constraint_extraction.py` | Dietary Constraint Extractor | 1,899 tokens | **869 tokens** | -1,030 tokens | **-54.2%** |
+| `explanation.py` (Explanation) | Waiter Order Summarizer | 523 tokens | **285 tokens** | -238 tokens | **-45.5%** |
+| `explanation.py` (QA) | Informational Order Q&A | 146 tokens | **84 tokens** | -62 tokens | **-42.5%** |
+| `admin_insights.py` (Insights) | Executive Business Analyst | 435 tokens | **175 tokens** | -260 tokens | **-59.8%** |
+| `admin_insights.py` (Classifier)| Dual-Source Query Classifier | 250 tokens | **152 tokens** | -98 tokens | **-39.2%** |
+| `llm_judge.py` | Golden Suite Benchmark Judge | 231 tokens | **151 tokens** | -80 tokens | **-34.6%** |
+| **Total System Prompts** | **Full Application System Prompt Footprint** | **4,385 tokens** | **2,198 tokens** | **-2,187 tokens** | **-49.9%** |
 
 ---
 

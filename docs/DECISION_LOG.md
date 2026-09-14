@@ -81,3 +81,22 @@ This document records the foundational architectural and engineering decisions g
   - Dynamically scaled `max_qty_per_dish` and `feast_cap` to prevent artificial infeasibility when diners order extra items beyond default party sizes.
   - Routed action directives (e.g. "do those update now then") strictly to `MODIFICATION`, and enforced a strict Read-Only Mandate in question-answering prompts forbidding the model from claiming it updated orders.
 - **Outcome:** Accurate multi-portion order updates across conversation turns with complete elimination of conversational hallucinations.
+
+---
+
+### ADR 09: Sequential Intent Gating, Lean Context Projections & System Prompt Streamlining
+- **Context:** In multi-turn dialogues, token usage expanded dramatically on subsequent turns (e.g. Turn 1: 3,373 tokens -> Turn 2: 5,257 tokens -> Turn 3: 5,543 tokens). This was caused by concurrent speculative execution of `extract_constraints` on non-order turns (`QUESTION`, `GREETING`), dumping full database entities (120-character GCS image URLs, database UUIDs, serving math) into prompt contexts, sending 15 schema fields filled with empty default brackets, and verbosity in static prompt instructions.
+- **Decision:**
+  1. *Sequential Fast Intent Gating:* Execute `classify_intent` first (~482 tokens). If the intent is `QUESTION`, `GREETING`, `OFF_TOPIC`, or `ADVERSARIAL`, immediately short-circuit to the respective handler and completely bypass `extract_constraints`.
+  2. *Lean Cart Projections:* In `extract_constraints`, project draft carts into minimal semantic structures (`name`, `quantity`, `category`, `spice_level`, `dietary_preference`), stripping URLs, UUIDs, prices, and serving math. In `stream_question_answer`, preserve culinary/price facts (`name`, `quantity`, `unit_price`, `category`, `spice_level`, `dietary_preference`, `serving_size`) while stripping URLs and UUIDs.
+  3. *Compact Constraint State:* Implement `_compact_constraints` to prune `null`, empty lists `[]`, and empty dictionaries `{}` before serialization.
+  4. *Compact History Window:* Implement `_format_compact_history` to preserve the last 2 conversation exchanges while condensing assistant explanation paragraphs into concise summaries.
+  5. *Static System Prompt Streamlining:* Refactored all 7 system prompts in `/prompts` to eliminate redundant prose, shorten few-shot examples, and enforce compact JSON formatting:
+     - `intent_classification`: 901 -> 482 tokens (-46.5%)
+     - `constraint_extraction`: 1,899 -> 869 tokens (-54.2%)
+     - `explanation`: 523 -> 285 tokens (-45.5%)
+     - `question_answer`: 146 -> 84 tokens (-42.5%)
+     - `admin_insights`: 435 -> 175 tokens (-59.8%)
+     - `admin_classifier`: 250 -> 152 tokens (-39.2%)
+     - `llm_judge`: 231 -> 151 tokens (-34.6%)
+- **Outcome:** A total permanent reduction of 2,187 static prompt tokens across the platform, a ~78% drop in question turn tokens (from ~5,543 to ~1,200), a ~40% reduction in modification turn tokens, and an ~88% reduction in greeting turns, while maintaining 100% extraction accuracy on golden benchmark evaluations.

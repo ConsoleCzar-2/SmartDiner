@@ -5,6 +5,64 @@ from app.schemas.constraints import ExtractedConstraints
 from app.prompts.constraint_extraction import CONSTRAINT_EXTRACTION_SYSTEM_PROMPT
 from app.config import settings
 
+from typing import Optional, Any
+
+def _project_lean_cart(cart: Optional[list]) -> list[dict]:
+    """Projects cart items into lean semantic representations for constraint extraction.
+    Strips internal database UUIDs, 120-character GCS image URLs, unit prices, and serving math.
+    Preserves: name, quantity, category, spice_level, and dietary_preference.
+    """
+    if not cart:
+        return []
+    projected = []
+    for item in cart:
+        if not isinstance(item, dict) or not item.get("name"):
+            continue
+        entry = {
+            "name": item.get("name"),
+            "quantity": item.get("quantity", 1),
+        }
+        if item.get("category"):
+            entry["category"] = item.get("category")
+        if item.get("spice_level"):
+            entry["spice_level"] = item.get("spice_level")
+        if item.get("dietary_preference"):
+            entry["dietary_preference"] = item.get("dietary_preference")
+        projected.append(entry)
+    return projected
+
+
+def _compact_constraints(constraints: Optional[dict]) -> dict:
+    """Filters out empty, null, or default values to minimize prompt tokens."""
+    if not constraints:
+        return {}
+    return {
+        k: v for k, v in constraints.items()
+        if v is not None and v != [] and v != {} and v != "Any"
+    }
+
+
+def _format_compact_history(conversation_history: Optional[list], max_turns: int = 2) -> str:
+    """Formats last N conversation turns, compacting assistant responses to prevent token bloat."""
+    if not conversation_history:
+        return ""
+    recent_msgs = conversation_history[-(max_turns * 2):]
+    formatted = []
+    for msg in recent_msgs:
+        role = msg.get("role", "user")
+        content = msg.get("content", "").strip()
+        if role == "assistant":
+            summary = content.split(".")[0] if "." in content else content[:120]
+            summary = summary.strip()
+            if summary:
+                formatted.append(f"Assistant: {summary}.")
+        else:
+            formatted.append(f"User: {content}")
+    if not formatted:
+        return ""
+    return "Previous Conversation:\n" + "\n".join(formatted) + "\n"
+
+
 async def extract_constraints(user_message: str, conversation_history: list = None, 
                               existing_constraints: dict = None, current_cart: list = None) -> tuple[ExtractedConstraints, dict]:
     """
@@ -13,20 +71,19 @@ async def extract_constraints(user_message: str, conversation_history: list = No
     """
     client = genai.Client(api_key=settings.gemini_api_key)
 
-    # Format conversation history if provided (useful for modifications)
+    # Format lean conversation history, constraints, and cart context
     context = ""
-    if conversation_history:
-        context = "Previous Conversation:\n"
-        for msg in conversation_history:
-            role = msg.get("role", "unknown")
-            content = msg.get("content", "")
-            context += f"{role.capitalize()}: {content}\n"
+    compact_history = _format_compact_history(conversation_history)
+    if compact_history:
+        context += compact_history
             
-    if existing_constraints:
-        context += f"\nExisting Constraints (JSON):\n{json.dumps(existing_constraints, indent=2)}\n"
+    compacted_constraints = _compact_constraints(existing_constraints)
+    if compacted_constraints:
+        context += f"\nExisting Constraints:\n{json.dumps(compacted_constraints)}\n"
         
-    if current_cart:
-        context += f"\nCurrent Draft Cart (User may have modified this):\n{json.dumps(current_cart, indent=2)}\n"
+    lean_cart = _project_lean_cart(current_cart)
+    if lean_cart:
+        context += f"\nCurrent Draft Cart:\n{json.dumps(lean_cart)}\n"
         
     if context:
         context += "\nCurrent Request:\n"

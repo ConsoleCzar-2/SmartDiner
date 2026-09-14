@@ -12,23 +12,26 @@ flowchart TD
     
     subgraph Pipeline [Governed Recommendation Pipeline]
         direction TB
-        Int[0.5 Intent Classifier]
-        Ext[1. LLM Constraint Extractor]
+        Int[0.5 Fast Intent Gate]
+        Ext[1. Gated Constraint Extractor]
         Merge[1.5 State Merger]
         DBF[2. PostgreSQL Menu Filter]
         ILP[3. PuLP Integer Linear Solver]
         Exp[4. LLM Explanation Generator]
         Ans[Question Answerer]
+        Instant[Instant Guardrail Response]
         
-        Int & Ext -.->|Concurrent| Merge
+        Int -->|ORDER / MODIFICATION| Ext
         Int -->|QUESTION| Ans
+        Int -->|GREETING / OFF_TOPIC / ADVERSARIAL| Instant
+        Ext -->|Delta Constraints| Merge
         Merge -->|Extracted JSON| DBF
         DBF -->|Safe Candidate Items| ILP
         ILP -->|Mathematically Optimal Menu| Exp
     end
     
-    Pipeline -.->|Response| FastAPI
-    FastAPI -.->|JSON| Client
+    Pipeline -.->|SSE Stream / JSON| FastAPI
+    FastAPI -.->|Stream / JSON| Client
     
     %% Audit Logging Background Task
     FastAPI -.- |Background Task| WORM[(GCS WORM Bucket)]
@@ -45,12 +48,17 @@ flowchart TD
 
 ## 2. The Governed Pipeline
 
-### Step 0.5 & 1: Intent Classification & Constraint Extraction (LLM)
-The user's natural language input (e.g., "Food for 3, no nuts, budget ₹2000" or "What did you change?") is passed to two concurrent Gemini 3.5 Flash Lite calls:
-1. **Intent Classifier:** Determines if the message is an `ORDER`, `MODIFICATION`, `QUESTION`, `GREETING`, `OFF_TOPIC`, or `ADVERSARIAL`. 
-2. **Constraint Extractor:** Simultaneously extracts structured constraints from the message, maintaining awareness of the `Current Draft Cart` to handle specific dish swaps or removals.
+### Step 0.5: Fast Intent Gate (LLM)
+The user's message is first evaluated by a lightweight Intent Classifier (~450 prompt tokens, `temperature: 0.0`):
+- **ORDER / MODIFICATION:** The request proceeds to Step 1 (Constraint Extraction) to parse dietary needs, budget, party size, and item quantities.
+- **QUESTION:** The request completely bypasses the constraint extractor and ILP solver, routing directly to `stream_question_answer` with a lean QA cart (`_project_qa_cart`). This eliminates ~3,900 wasted prompt tokens per question turn (a 78% token reduction).
+- **GREETING / OFF_TOPIC / ADVERSARIAL:** The request immediately yields a friendly welcome or guardrail response with zero additional LLM calls (saving 100% of extraction and solver overhead).
 
-*Short-Circuit:* If the intent is `QUESTION`, the pipeline bypasses the math solver entirely and routes to a specific Q&A prompt to answer the user based on their current cart without modifying it. If the intent is malicious or off-topic, it rejects the request instantly.
+### Step 1: Gated Constraint Extraction with Lean Context Projection (LLM)
+When an ordering or modification intent is verified, the Constraint Extractor parses structured constraints using `gemini-3.5-flash-lite`:
+- **Lean Cart Projection (`_project_lean_cart`):** Instead of serializing the raw database model with 120-character GCS image URLs and UUIDs, cart items are projected to minimal semantic dictionaries (`name`, `quantity`, `category`, `spice_level`, `dietary_preference`), shrinking cart payload by ~70%.
+- **Compact Constraint Serialization (`_compact_constraints`):** Filters out empty lists (`[]`), empty dicts (`{}`), `null` values, and default `"Any"` spice levels, passing only active constraints and cutting schema payload by ~75%.
+- **Compact History Window (`_format_compact_history`):** Formats the last 2 full conversation exchanges, preserving user messages while condensing lengthy assistant explanation narratives into concise summaries. This guarantees that pronoun referents (e.g. *"add what you suggested"*) remain coherent while eliminating 500+ tokens of marketing fluff.
 
 ### Step 1.5: State Merging (Deterministic Python)
 The delta constraints extracted in Step 1 are merged securely with the existing conversation state. List fields like `excluded_dishes` or `preferred_categories` override the delta, while numeric limits like `max_budget` update the ongoing state constraints.

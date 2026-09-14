@@ -3,8 +3,10 @@
 import json
 import time
 from google import genai
+from typing import Optional
 from app.prompts.explanation import EXPLANATION_SYSTEM_PROMPT, QUESTION_ANSWER_SYSTEM_PROMPT
 from app.schemas.constraints import ExtractedConstraints
+from app.services.constraint_extractor import _compact_constraints, _format_compact_history
 from app.config import settings
 
 
@@ -33,7 +35,7 @@ def build_explanation_context(
     context_block = (
         f"VERIFIED_RESULTS:\n"
         f"Status: {solver_output['status']}\n"
-        f"Items: {json.dumps(items_summary, indent=2)}\n"
+        f"Items: {json.dumps(items_summary, separators=(',', ':'))}\n"
         f"Total Cost: ₹{solver_output['total_cost']}\n"
         f"Total Servings: {solver_output['total_servings']}\n\n"
         f"{safety_notes_block}"
@@ -65,25 +67,54 @@ def build_explanation_context(
     return context_block
 
 
+def _project_qa_cart(cart: Optional[list]) -> list[dict]:
+    """Projects cart items for question-answering with all culinary facts but zero URL/UUID bloat.
+    Preserves: name, quantity, price, category, spice_level, dietary_preference, serving_size.
+    Strips: database UUIDs, 120-character GCS image URLs, and internal metadata.
+    """
+    if not cart:
+        return []
+    projected = []
+    for item in cart:
+        if not isinstance(item, dict) or not item.get("name"):
+            continue
+        entry = {
+            "name": item.get("name"),
+            "quantity": item.get("quantity", 1),
+            "unit_price": f"₹{item.get('unit_price', item.get('price', 0))}",
+        }
+        if item.get("category"):
+            entry["category"] = item.get("category")
+        if item.get("spice_level"):
+            entry["spice_level"] = item.get("spice_level")
+        if item.get("dietary_preference"):
+            entry["dietary_preference"] = item.get("dietary_preference")
+        if item.get("serving_size"):
+            entry["serving_size"] = item.get("serving_size")
+        projected.append(entry)
+    return projected
+
+
 def build_question_answer_prompt(
     user_message: str, 
     current_cart: list, 
     constraints: dict, 
     conversation_history: list = None
 ) -> str:
-    """Builds the canonical prompt for question answering."""
+    """Builds the canonical prompt for question answering with lean cart and compact constraints."""
+    qa_cart = _project_qa_cart(current_cart)
+    compact_c = _compact_constraints(constraints)
+    
     context_block = (
-        f"CURRENT_CART:\n{json.dumps(current_cart, indent=2)}\n\n"
-        f"CURRENT_CONSTRAINTS:\n{json.dumps(constraints, indent=2)}\n\n"
+        f"CURRENT_CART:\n{json.dumps(qa_cart)}\n\n"
+        f"CURRENT_CONSTRAINTS:\n{json.dumps(compact_c)}\n\n"
     )
     if conversation_history:
-        context_block += "HISTORY:\n"
-        for msg in conversation_history[-4:]:
-            role = msg.get("role", "unknown")
-            content = msg.get("content", "")
-            context_block += f"{role.capitalize()}: {content}\n"
+        history_text = _format_compact_history(conversation_history, max_turns=2)
+        if history_text:
+            context_block += f"{history_text}\n"
 
-    return f"{context_block}\nUSER_QUESTION: {user_message}"
+    return f"{context_block}USER_QUESTION: {user_message}"
 
 
 async def stream_explanation(

@@ -454,31 +454,62 @@ async def _execute_recommendation_pipeline(
 
     yield {
         "event": "status",
-        "data": {"step": "intent_and_constraints", "message": "Analyzing dietary requirements and budget constraints..."}
+        "data": {"step": "analyzing_intent", "message": "Analyzing request..."}
     }
 
     # Step 0: Conversation State Management
     conversation, conversation_history, existing_constraints, active_restaurant_id = await _load_conversation_state(request, db)
 
-    # Step 0.5 & 1: Parallel Intent Classification & Constraint Extraction
-    (intent_result, intent_meta), (delta_constraints, extractor_meta) = await asyncio.gather(
-        classify_intent(request.message),
-        extract_constraints(
-            request.message, 
-            conversation_history=conversation_history, 
-            existing_constraints=existing_constraints,
-            current_cart=conversation.current_cart if conversation else None
-        )
-    )
+    # Step 0.5: Fast Intent Classification Gate
+    intent_result, intent_meta = await classify_intent(request.message)
     pipeline_telemetry["intent"] = intent_result.model_dump()
-    pipeline_telemetry["llm_calls"].extend([intent_meta, extractor_meta])
+    pipeline_telemetry["llm_calls"].append(intent_meta)
+
+    # Short-circuit non-recommendation intents immediately (QUESTION, GREETING, OFF_TOPIC, ADVERSARIAL)
+    if intent_result.intent in ["OFF_TOPIC", "ADVERSARIAL", "GREETING", "QUESTION"]:
+        rest_ctx = await _resolve_restaurant_context(
+            request, db, user_id, conversation, ExtractedConstraints(), active_restaurant_id, existing_constraints
+        )
+        if rest_ctx.is_ambiguous:
+            yield {"event": "token", "data": {"content": rest_ctx.clarification_message}}
+            yield {"event": "done", "response": rest_ctx.clarification_response, "telemetry": pipeline_telemetry}
+            return
+
+        active_restaurant_id = rest_ctx.active_restaurant_id
+        active_restaurant_name = rest_ctx.active_restaurant_name
+        cross_restaurant_meta = rest_ctx.cross_restaurant_meta
+        existing_constraints = rest_ctx.existing_constraints
+
+        conversation = await _ensure_conversation(db, conversation, user_id, active_restaurant_id)
+
+        async for ev in _handle_non_recommendation_intent(
+            request, db, user_id, conversation, intent_result, existing_constraints,
+            conversation_history, active_restaurant_id, active_restaurant_name,
+            cross_restaurant_meta, enqueue_audit, pipeline_telemetry
+        ):
+            yield ev
+        return
+
+    yield {
+        "event": "status",
+        "data": {"step": "extracting_constraints", "message": "Analyzing dietary requirements and budget constraints..."}
+    }
+
+    # Step 1: Gated Constraint Extraction (Only for ORDER & MODIFICATION)
+    delta_constraints, extractor_meta = await extract_constraints(
+        request.message, 
+        conversation_history=conversation_history, 
+        existing_constraints=existing_constraints,
+        current_cart=conversation.current_cart if conversation else None
+    )
+    pipeline_telemetry["llm_calls"].append(extractor_meta)
 
     yield {
         "event": "status",
         "data": {"step": "resolving_restaurant", "message": "Resolving restaurant selection..."}
     }
 
-    # Step 0.8: Resolve Restaurant
+    # Step 1.2: Resolve Restaurant
     rest_ctx = await _resolve_restaurant_context(
         request, db, user_id, conversation, delta_constraints, active_restaurant_id, existing_constraints
     )
@@ -494,16 +525,6 @@ async def _execute_recommendation_pipeline(
     delta_constraints = rest_ctx.delta_constraints
 
     conversation = await _ensure_conversation(db, conversation, user_id, active_restaurant_id)
-
-    # Step 1: Handle Non-Recommendation Intents
-    if intent_result.intent in ["OFF_TOPIC", "ADVERSARIAL", "GREETING", "QUESTION"]:
-        async for ev in _handle_non_recommendation_intent(
-            request, db, user_id, conversation, intent_result, existing_constraints,
-            conversation_history, active_restaurant_id, active_restaurant_name,
-            cross_restaurant_meta, enqueue_audit, pipeline_telemetry
-        ):
-            yield ev
-        return
 
     # Step 1.5: Deterministic State Merging
     constraints = merge_constraints(existing_constraints, delta_constraints)
