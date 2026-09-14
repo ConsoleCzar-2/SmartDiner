@@ -41,9 +41,7 @@ class Settings(BaseSettings):
         description="Optional regex for allowed origins (useful for preview deployments)"
     )
     
-    # Redis
-    redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
-    
+
     # GCP Infrastructure
     gcp_project_id: str = Field(default="", description="Google Cloud Project ID")
     gcs_audit_bucket_name: str = Field(default="", description="GCS WORM bucket name for audit logs")
