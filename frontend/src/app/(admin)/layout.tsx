@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { LayoutDashboard, MessageSquare, LogOut, Loader2, Sparkles } from "lucide-react";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { cn } from "@/lib/utils";
 import "../globals.css";
 
@@ -32,6 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <Loader2 className="h-6 w-6 animate-spin text-[#f6a61d]" />
                     </div>
                     <Analytics />
+                    <SpeedInsights />
                 </body>
             </html>
         );
@@ -43,6 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <body>
                     {children}
                     <Analytics />
+                    <SpeedInsights />
                 </body>
             </html>
         );
@@ -135,6 +138,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </main>
                 </div>
                 <Analytics />
+                <SpeedInsights />
             </body>
         </html>
     );
