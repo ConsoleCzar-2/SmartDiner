@@ -212,41 +212,58 @@ export default function AdminPage() {
                                 Latest {analytics.recent_orders.length} orders
                             </span>
                         </div>
-                        <div className="mt-4 divide-y divide-white/5">
-                            {analytics.recent_orders.map((order) => (
-                                <div
-                                    key={order.id}
-                                    className="flex flex-wrap items-center justify-between gap-4 py-3 text-xs hover:bg-white/[.015] px-2 rounded-lg transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-mono text-zinc-400">
-                                            #{order.id.slice(0, 8)}
-                                        </span>
-                                        <span className="font-medium text-white">
-                                            {order.restaurant_name || "SmartDiner Kitchen"}
-                                        </span>
-                                        <span className="text-zinc-500">
-                                            ({order.items_count} {order.items_count === 1 ? "item" : "items"})
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-mono font-bold text-white">
-                                            ₹{order.total_amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                                        </span>
-                                        <span className="inline-block rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                                            {order.status}
-                                        </span>
-                                        <span className="text-zinc-500 font-mono text-[10px]">
-                                            {order.created_at ? new Date(order.created_at).toLocaleDateString("en-IN", {
-                                                month: "short",
-                                                day: "numeric",
-                                                hour: "2-digit",
-                                                minute: "2-digit"
-                                            }) : ""}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="mt-4 overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                                <thead>
+                                    <tr className="border-b border-white/5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                                        <th className="pb-3 pl-2 w-32">Order Ref</th>
+                                        <th className="pb-3">Venue</th>
+                                        <th className="pb-3 w-32">Items</th>
+                                        <th className="pb-3 w-40">Time</th>
+                                        <th className="pb-3 w-28 text-center">Status</th>
+                                        <th className="pb-3 text-right pr-2 w-36">Total Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {analytics.recent_orders.map((order) => (
+                                        <tr
+                                            key={order.id}
+                                            className="group hover:bg-white/[.02] transition-colors"
+                                        >
+                                            <td className="py-3.5 pl-2 font-mono">
+                                                <span 
+                                                    className="inline-block rounded bg-white/[.04] px-2 py-0.5 text-[11px] text-zinc-300 border border-white/5 font-mono"
+                                                    title={order.id}
+                                                >
+                                                    #...{order.id.slice(-6)}
+                                                </span>
+                                            </td>
+                                            <td className="py-3.5 font-medium text-white group-hover:text-[#f6a61d] transition-colors">
+                                                {order.restaurant_name || "SmartDiner Kitchen"}
+                                            </td>
+                                            <td className="py-3.5 text-zinc-400 font-mono">
+                                                {order.items_count} {order.items_count === 1 ? "item" : "items"}
+                                            </td>
+                                            <td className="py-3.5 text-zinc-400 font-mono text-[11px]">
+                                                {order.created_at ? new Date(order.created_at).toLocaleDateString("en-IN", {
+                                                    month: "short",
+                                                    day: "numeric",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit"
+                                                }) : "-"}
+                                            </td>
+                                            <td className="py-3.5 text-center">
+                                                <span className="inline-block rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400 capitalize">
+                                                    {order.status}
+                                                </span>
+                                            </td>
+                                            <td className="py-3.5 text-right font-mono font-bold text-white text-sm pr-2">
+                                                ₹{order.total_amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 )}

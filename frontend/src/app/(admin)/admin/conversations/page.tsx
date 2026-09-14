@@ -76,8 +76,8 @@ export default function ConversationsPage() {
                                 className="border-b border-white/[.06] text-xs transition hover:bg-white/[.035]"
                             >
                                 <td className="px-5 py-4">
-                                    <p className="font-bold text-zinc-100">
-                                        {conv.id.split("-")[0]}...
+                                    <p className="font-bold text-zinc-100 font-mono" title={conv.id}>
+                                        ...{conv.id.slice(-8)}
                                     </p>
                                     <p className="mt-1 text-[10px] text-zinc-600">
                                         {new Date(conv.created_at).toLocaleString(undefined, {
@@ -87,7 +87,7 @@ export default function ConversationsPage() {
                                     </p>
                                 </td>
                                 <td className="px-4 py-4 font-medium text-[#f6a61d]">
-                                    {conv.restaurant_name || conv.restaurant_id || "Unknown"}
+                                    {conv.restaurant_name || (conv.restaurant_id ? `...${conv.restaurant_id.slice(-8)}` : "Unknown")}
                                 </td>
                                 <td className="px-4 py-4 text-zinc-300">
                                     {conv.customer_name || "Unknown"}

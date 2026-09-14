@@ -46,14 +46,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <html lang="en">
             <body>
-                <div className="flex min-h-screen bg-[#0c1011]">
-                    <aside className="w-64 border-r border-white/10 bg-[#0c1011] flex flex-col">
-                        <div className="p-6 border-b border-white/10">
+                <div className="flex h-screen overflow-hidden bg-[#0c1011]">
+                    <aside className="w-64 shrink-0 h-full border-r border-white/10 bg-[#0c1011] flex flex-col">
+                        <div className="p-6 border-b border-white/10 shrink-0">
                             <span className="block text-sm font-black tracking-[-.06em] text-white">
                                 Smart<span className="text-[#f6a61d]">Diner</span> admin
                             </span>
                         </div>
-                        <nav className="flex-1 space-y-2 p-4">
+                        <nav className="flex-1 space-y-2 p-4 overflow-y-auto">
                             <Link
                                 href="/admin"
                                 className={cn(
@@ -103,7 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 Menu Manager
                             </Link>
                         </nav>
-                        <div className="p-4 border-t border-white/10">
+                        <div className="p-4 border-t border-white/10 shrink-0">
                             <div className="mb-4 flex items-center gap-3 px-4">
                                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white font-bold">
                                     {userName ? userName.charAt(0).toUpperCase() : "A"}
@@ -125,7 +125,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             </button>
                         </div>
                     </aside>
-                    <main className="flex-1 overflow-y-auto">
+                    <main className="flex-1 h-full overflow-y-auto min-w-0">
                         {children}
                     </main>
                 </div>

@@ -102,11 +102,11 @@ export default function WormLogViewer({ log, viewMode }: { log: any; viewMode: '
                 </div>
                 <div className="flex items-center gap-3 text-xs">
                     <div className="bg-zinc-800/80 px-3 py-1.5 rounded-lg border border-zinc-700">
-                        <span className="text-zinc-500">Conversation:</span> <span className="font-mono text-zinc-300">{log.conversation_id?.slice(0, 8)}...</span>
+                        <span className="text-zinc-500">Conversation:</span> <span className="font-mono text-zinc-300" title={log.conversation_id}>...{log.conversation_id?.slice(-8)}</span>
                     </div>
                     {log.restaurant_id && (
                         <div className="bg-zinc-800/80 px-3 py-1.5 rounded-lg border border-zinc-700">
-                            <span className="text-zinc-500">Venue:</span> <span className="font-mono text-zinc-300">{log.restaurant_id?.slice(0, 8)}...</span>
+                            <span className="text-zinc-500">Venue:</span> <span className="font-mono text-zinc-300" title={log.restaurant_id}>...{log.restaurant_id?.slice(-8)}</span>
                         </div>
                     )}
                 </div>

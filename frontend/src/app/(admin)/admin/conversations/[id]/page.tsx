@@ -72,9 +72,9 @@ export default function ConversationDetailPage({ params }: { params: Promise<{ i
                         {conversation.customer_name} @ {conversation.restaurant_name || conversation.restaurant_id}
                     </p>
                 </div>
-                <div className="text-right text-xs text-zinc-500">
-                    <p>ID: {conversation.id}</p>
-                    <p>{new Date(conversation.created_at).toLocaleString()}</p>
+                <div className="text-right text-xs text-zinc-500 font-mono">
+                    <p title={conversation.id}>ID: ...{conversation.id ? conversation.id.slice(-8) : ""}</p>
+                    <p className="text-zinc-500 font-sans">{new Date(conversation.created_at).toLocaleString()}</p>
                 </div>
             </div>
 

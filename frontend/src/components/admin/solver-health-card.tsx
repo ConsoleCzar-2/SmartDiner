@@ -18,8 +18,8 @@ export function SolverHealthCard({ health, allergenFrequency = {} }: SolverHealt
     const allergenEntries = Object.entries(allergenFrequency).sort((a, b) => b[1] - a[1]);
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/[.025] p-6 backdrop-blur-md">
-            <div className="flex items-center justify-between pb-4 border-b border-white/5">
+        <div className="rounded-2xl border border-white/10 bg-white/[.025] p-6 backdrop-blur-md flex flex-col justify-between h-[380px]">
+            <div className="flex items-center justify-between pb-3.5 border-b border-white/5">
                 <div className="flex items-center gap-2">
                     <Cpu className="h-4 w-4 text-[#f6a61d]" />
                     <h2 className="text-base font-bold text-white tracking-tight">

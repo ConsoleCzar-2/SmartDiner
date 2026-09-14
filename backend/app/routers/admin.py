@@ -438,8 +438,8 @@ async def get_conversations(current_user: AdminUser = Depends(get_current_admin_
     responses = []
     for row in rows:
         c = row.Conversation
-        # Mask the ID: e.g. "Abhirup (User #4f92...)"
-        masked_id = c.user_id[:4] if c.user_id else "unknown"
+        # Mask the ID: e.g. "Abhirup (User #...4f92)"
+        masked_id = f"...{c.user_id[-5:]}" if c.user_id else "unknown"
         customer_name = f"{row.customer_name or 'Guest'} (User #{masked_id})"
         
         responses.append(ConversationResponse(
@@ -480,7 +480,7 @@ async def get_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found or access denied")
         
     c = row.Conversation
-    masked_id = c.user_id[:4] if c.user_id else "unknown"
+    masked_id = f"...{c.user_id[-5:]}" if c.user_id else "unknown"
     customer_name = f"{row.customer_name or 'Guest'} (User #{masked_id})"
     
     return ConversationResponse(

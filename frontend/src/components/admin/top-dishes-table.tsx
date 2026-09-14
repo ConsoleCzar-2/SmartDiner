@@ -12,15 +12,15 @@ interface TopDishesTableProps {
 export function TopDishesTable({ items, currencySymbol = "₹" }: TopDishesTableProps) {
     if (!items || items.length === 0) {
         return (
-            <div className="flex h-48 items-center justify-center rounded-2xl border border-white/10 bg-white/[.02] text-sm text-zinc-500">
+            <div className="flex h-[380px] items-center justify-center rounded-2xl border border-white/10 bg-white/[.02] text-sm text-zinc-500">
                 No dish volume recorded for this time range.
             </div>
         );
     }
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/[.025] p-6 backdrop-blur-md">
-            <div className="flex items-center justify-between pb-4 border-b border-white/5">
+        <div className="rounded-2xl border border-white/10 bg-white/[.025] p-6 backdrop-blur-md flex flex-col h-[380px]">
+            <div className="flex items-center justify-between pb-3.5 border-b border-white/5 shrink-0">
                 <div className="flex items-center gap-2">
                     <Award className="h-4 w-4 text-[#f6a61d]" />
                     <h2 className="text-base font-bold text-white tracking-tight">
@@ -32,15 +32,15 @@ export function TopDishesTable({ items, currencySymbol = "₹" }: TopDishesTable
                 </span>
             </div>
 
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-2 flex-1 overflow-y-auto overflow-x-auto pr-1">
                 <table className="w-full text-left text-xs">
-                    <thead>
+                    <thead className="sticky top-0 bg-[#0c1011]/95 backdrop-blur-sm z-10">
                         <tr className="border-b border-white/5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                            <th className="pb-3 pl-2">#</th>
-                            <th className="pb-3">Dish Name</th>
-                            <th className="pb-3">Category</th>
-                            <th className="pb-3 text-right">Qty Sold</th>
-                            <th className="pb-3 text-right pr-2">Revenue</th>
+                            <th className="py-2.5 pl-2">#</th>
+                            <th className="py-2.5">Dish Name</th>
+                            <th className="py-2.5">Category</th>
+                            <th className="py-2.5 text-right">Qty Sold</th>
+                            <th className="py-2.5 text-right pr-2">Revenue</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
