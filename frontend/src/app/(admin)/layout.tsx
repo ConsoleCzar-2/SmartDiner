@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { LayoutDashboard, MessageSquare, LogOut, Loader2, Sparkles } from "lucide-react";
+import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/lib/utils";
 import "../globals.css";
 
@@ -30,6 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <div className="flex min-h-screen items-center justify-center bg-[#0c1011]">
                         <Loader2 className="h-6 w-6 animate-spin text-[#f6a61d]" />
                     </div>
+                    <Analytics />
                 </body>
             </html>
         );
@@ -38,7 +40,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (pathname === "/admin/login") {
         return (
             <html lang="en">
-                <body>{children}</body>
+                <body>
+                    {children}
+                    <Analytics />
+                </body>
             </html>
         );
     }
@@ -129,6 +134,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         {children}
                     </main>
                 </div>
+                <Analytics />
             </body>
         </html>
     );
